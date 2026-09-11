@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ lead.name or 'Lead' }}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <div class="page-eyebrow"><a href="{{ url_for('dashboard.leads') }}" style="color:var(--text-faint);">Leads</a> / {{ lead.name or 'Unknown' }}</div>
+    <h1 class="page-title">{{ lead.name or 'Unknown visitor' }}</h1>
+  </div>
+  <div class="page-header-actions">
+    <select id="status-select" onchange="updateStatus(this.value)">
+      {% for s in ['New','Contacted','Qualified','Appointment','Site Visit','Won','Lost'] %}
+      <option value="{{ s }}" {{ 'selected' if lead.status == s }}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <select id="assign-select" onchange="assignLead(this.value)">
+      <option value="">Unassigned</option>
+      {% for m in team %}
+      <option value="{{ m._id }}" {{ 'selected' if lead.assigned_to == m._id }}>{{ m.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+<div class="grid grid-main-side">
+  <div style="display:flex; flex-direction:column; gap:18px;">
+    <div class="card">
+      <h3 class="card-title" style="margin-bottom:14px;">Details</h3>
+      <dl class="kv-grid">
+        <dt>Phone</dt><dd>{{ lead.phone or '-' }}</dd>
+        <dt>Email</dt><dd>{{ lead.email or '-' }}</dd>
+        <dt>Location</dt><dd>{{ lead.location or '-' }}</dd>
+        <dt>Budget</dt><dd>{{ lead.budget or '-' }}</dd>
+        <dt>Requirement</dt><dd>{{ lead.requirement or '-' }}</dd>
+        <dt>Source</dt><dd>{{ lead.source }}</dd>
+        <dt>Qualification</dt><dd><span class="badge {{ 'badge-green' if lead.qualification=='qualified' else 'badge-gray' }}">{{ lead.qualification }}</span></dd>
+      </dl>
+    </div>
+
+    {% if appointments %}
+    <div class="card">
+      <h3 class="card-title" style="margin-bottom:14px;">Appointments</h3>
+      {% for a in appointments %}
+      <div class="list-row">
+        <div class="list-row-main">
+          <div class="list-row-title">{{ a.kind|replace('_',' ')|capitalize }}</div>
+          <div class="list-row-sub">{{ a.start_time[:16]|replace('T',' ') }}{% if a.address %} · {{ a.address }}{% endif %}</div>
+        </div>
+        <span class="badge badge-blue">{{ a.status }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h3 class="card-title" style="margin-bottom:14px;">Notes</h3>
+      <div id="notes-list">
+        {% for n in lead.notes %}
+        <div class="list-row"><div class="list-row-main"><div class="list-row-title">{{ n.text }}</div><div class="list-row-sub">{{ n.author }} · {{ n.created_at[:16]|replace('T',' ') }}</div></div></div>
+        {% endfor %}
+      </div>
+      <form id="note-form" style="display:flex; gap:8px; margin-top:10px;">
+        <input type="text" id="note-input" placeholder="Add a note...">
+        <button class="btn btn-sm" type="submit">Add</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="card-title" style="margin-bottom:14px;">Conversation</h3>
+    {% if messages %}
+    <div style="display:flex; flex-direction:column; gap:12px; max-height:600px; overflow-y:auto;">
+      {% for m in messages %}
+      <div class="msg-row {{ 'visitor' if m.role == 'visitor' else 'assistant' }}">
+        <div>
+          {% if conversation.channel == 'voice' %}<div class="voice-tag">🎙 Voice</div>{% endif %}
+          <div class="msg-bubble">{{ m.content }}</div>
+          <div class="msg-meta">{{ m.created_at[11:16] }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-state-title">No conversation linked</div>This lead was added manually or via the widget's contact form.</div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+const LEAD_ID = "{{ lead._id }}";
+async function updateStatus(status) {
+  await fetch(`/api/leads/${LEAD_ID}/status`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status}) });
+}
+async function assignLead(userId) {
+  await fetch(`/api/leads/${LEAD_ID}/assign`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({user_id: userId || null}) });
+}
+document.getElementById('note-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('note-input');
+  if (!input.value.trim()) return;
+  const res = await fetch(`/api/leads/${LEAD_ID}/notes`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({text: input.value}) });
+  const note = await res.json();
+  document.getElementById('notes-list').insertAdjacentHTML('beforeend', `<div class="list-row"><div class="list-row-main"><div class="list-row-title">${note.text}</div><div class="list-row-sub">${note.author} · just now</div></div></div>`);
+  input.value = '';
+});
+</script>
+{% endblock %}

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Widget Preview</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #f4f4f4; margin: 0; padding: 60px 40px; }
+    .mock-site { max-width: 800px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+    h1 { margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="mock-site">
+    <h1>{{ agent_name or 'Your Business' }}</h1>
+    <p>This is a sample page showing how the Recepta widget appears on your live website. The chat bubble will appear in the corner after the configured delay.</p>
+  </div>
+  <script src="{{ widget_base_url }}/widget.js" data-agent-id="{{ agent_id }}"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Leads{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Leads</h1>
+    <p class="page-subtitle">Every lead your AI receptionist has captured.</p>
+  </div>
+</div>
+
+<div style="display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;">
+  <a class="tag-pill {{ 'active' if not status_filter }}" href="{{ url_for('dashboard.leads') }}">All</a>
+  {% for s in ['New','Contacted','Qualified','Appointment','Site Visit','Won','Lost'] %}
+  <a class="tag-pill {{ 'active' if status_filter == s }}" href="{{ url_for('dashboard.leads', status=s) }}">{{ s }}</a>
+  {% endfor %}
+</div>
+
+<div class="card">
+  {% if leads %}
+  <table>
+    <thead><tr><th>Name</th><th>Contact</th><th>Requirement</th><th>Source</th><th>Assigned</th><th>Status</th><th>Created</th></tr></thead>
+    <tbody>
+      {% for l in leads %}
+      <tr onclick="window.location='{{ url_for('dashboard.lead_detail', lead_id=l._id) }}'" style="cursor:pointer;">
+        <td>{{ l.name or 'Unknown' }} {% if l.is_test %}<span class="badge badge-gray">Test</span>{% endif %}</td>
+        <td>{{ l.email or '' }}<br><span class="stat-label">{{ l.phone or '' }}</span></td>
+        <td>{{ (l.requirement or '-')[:50] }}</td>
+        <td>{{ l.source }}</td>
+        <td>{{ l.assignee_name }}</td>
+        <td><span class="badge {{ 'badge-green' if l.status=='Qualified' or l.status=='Won' else ('badge-blue' if l.status=='New' else ('badge-purple' if l.status in ['Appointment','Site Visit'] else ('badge-red' if l.status=='Lost' else 'badge-amber'))) }}">{{ l.status }}</span></td>
+        <td>{{ l.created_at[:10] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="empty-state-title">No leads yet</div>Leads captured by your AI receptionist will appear here.</div>
+  {% endif %}
+</div>
+{% endblock %}

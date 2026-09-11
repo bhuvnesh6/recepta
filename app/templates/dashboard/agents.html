@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Agents{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Agents</h1>
+    <p class="page-subtitle">Create and manage your AI receptionists.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('dashboard.agent_new') }}">+ Create New Agent</a>
+</div>
+
+{% if agents %}
+<div class="grid grid-3">
+  {% for a in agents %}
+  <a class="card" href="{{ url_for('dashboard.agent_detail', agent_id=a._id) }}" style="display:block;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 14px;">
+      <div class="avatar" style="border-radius:12px;">{{ a.name[0]|upper }}</div>
+      <span class="badge {{ 'badge-green' if a.status=='live' else ('badge-amber' if a.status=='draft' else 'badge-gray') }}">{{ a.status|capitalize }}</span>
+    </div>
+    <div class="list-row-title" style="font-size:15px;">{{ a.name }}</div>
+    <div class="list-row-sub" style="margin-bottom: 14px;">{{ a.business_name }} · {{ a.industry or 'General' }}</div>
+    <div class="divider" style="margin:12px 0;"></div>
+    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-faint);">
+      <span>{{ a.language|upper }}</span>
+      <span>Updated {{ a.updated_at[:10] if a.updated_at else '' }}</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty-state">
+  <div class="empty-state-title">No agents yet</div>
+  Create your first AI receptionist to start capturing leads 24/7.
+  <div style="margin-top:16px;"><a class="btn btn-primary" href="{{ url_for('dashboard.agent_new') }}">+ Create New Agent</a></div>
+</div>
+{% endif %}
+{% endblock %}

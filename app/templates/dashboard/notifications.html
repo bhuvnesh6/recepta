@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Notifications</h1>
+    <p class="page-subtitle">New leads, assignments, appointments, and knowledge base updates.</p>
+  </div>
+</div>
+
+<div class="card">
+  {% if notifications %}
+  {% for n in notifications %}
+  <div class="list-row">
+    <div class="avatar-sm">🔔</div>
+    <div class="list-row-main">
+      <div class="list-row-title">{{ n.title }}</div>
+      <div class="list-row-sub">{{ n.body }}</div>
+    </div>
+    <div class="stat-label">{{ n.created_at[:16]|replace('T',' ') }}</div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty-state"><div class="empty-state-title">You're all caught up</div>New leads, assignments, and appointments will show up here.</div>
+  {% endif %}
+</div>
+{% endblock %}

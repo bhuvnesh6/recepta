@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Usage{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Usage</h1>
+    <p class="page-subtitle">Track consumption so you always know where you stand on your plan.</p>
+  </div>
+</div>
+
+<div class="grid grid-4">
+  {% for key, label in [('ai_messages','AI Messages'), ('voice_minutes','Voice Minutes'), ('leads_captured','Leads Captured'), ('embedding_ops','Knowledge Chunks Indexed')] %}
+  <div class="card stat-card">
+    <div class="stat-label">{{ label }}</div>
+    <div class="stat-value">{{ usage.get(key, 0) }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

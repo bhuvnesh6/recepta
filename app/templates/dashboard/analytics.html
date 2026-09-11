@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Analytics</h1>
+    <p class="page-subtitle">Your visitor-to-lead funnel over time.</p>
+  </div>
+  <div class="page-header-actions">
+    <button class="btn tag-pill active">30 days</button>
+    <button class="btn tag-pill">7 days</button>
+    <button class="btn tag-pill">90 days</button>
+  </div>
+</div>
+
+<div class="card">
+  <h3 class="card-title" style="margin-bottom:16px;">Funnel</h3>
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    {% for step in ['Visitors','Widget Opened','Conversation','Lead','Qualified Lead','Appointment','Won'] %}
+    <div class="card" style="flex:1; min-width:120px; text-align:center;">
+      <div class="stat-label">{{ step }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="stat-label" style="margin-top:18px;">Connect more traffic to your widget to see the full funnel populate here.</p>
+</div>
+{% endblock %}

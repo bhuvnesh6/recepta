@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Knowledge Base{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Knowledge Base</h1>
+    <p class="page-subtitle">Website pages and documents your AI receptionist uses to answer questions.</p>
+  </div>
+</div>
+
+{% if agents %}
+<div style="display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;">
+  {% for a in agents %}
+  <a class="tag-pill {{ 'active' if selected_agent_id == a._id }}" href="{{ url_for('dashboard.knowledge', agent_id=a._id) }}">{{ a.name }}</a>
+  {% endfor %}
+</div>
+
+<div class="grid grid-2" style="margin-bottom:18px;">
+  <div class="card">
+    <h3 class="card-title" style="margin-bottom:12px;">Add website</h3>
+    <form id="website-form">
+      <div class="field"><input type="url" id="website-url" placeholder="https://yourbusiness.com" required></div>
+      <button class="btn btn-primary" type="submit">Crawl &amp; add to knowledge base</button>
+    </form>
+    <div id="website-status" class="field-hint"></div>
+  </div>
+  <div class="card">
+    <h3 class="card-title" style="margin-bottom:12px;">Upload document</h3>
+    <form id="upload-form">
+      <div class="field"><input type="file" id="upload-file" accept=".pdf,.docx,.txt,.csv" required></div>
+      <button class="btn btn-primary" type="submit">Upload &amp; process</button>
+    </form>
+    <div id="upload-status" class="field-hint"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 class="card-title" style="margin-bottom:14px;">Knowledge Sources</h3>
+  {% if sources %}
+  <table>
+    <thead><tr><th>Source</th><th>Type</th><th>Status</th><th>Chunks</th><th>Last synced</th><th></th></tr></thead>
+    <tbody id="sources-tbody">
+      {% for s in sources %}
+      <tr data-id="{{ s._id }}">
+        <td>{{ s.source_url or s.file_name }}</td>
+        <td>{{ s.source_type|upper }}</td>
+        <td><span class="badge {{ 'badge-green' if s.status=='ready' else ('badge-red' if s.status=='failed' else 'badge-amber') }}">{{ s.status|capitalize }}</span></td>
+        <td>{{ s.chunks_created }}</td>
+        <td>{{ (s.last_synced_at or s.created_at)[:16]|replace('T',' ') }}</td>
+        <td style="display:flex; gap:6px;">
+          {% if s.source_type == 'website' %}<button class="btn btn-sm" onclick="resync('{{ s._id }}')">Sync</button>{% endif %}
+          <button class="btn btn-sm btn-danger" onclick="deleteSource('{{ s._id }}')">Delete</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="empty-state-title">No knowledge sources yet</div>Add your website or upload documents above.</div>
+  {% endif %}
+</div>
+
+<script>
+const AGENT_ID = "{{ selected_agent_id }}";
+
+document.getElementById('website-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const url = document.getElementById('website-url').value;
+  document.getElementById('website-status').textContent = 'Crawling website...';
+  const res = await fetch('/api/knowledge/website', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ agent_id: AGENT_ID, url })
+  });
+  if (res.ok) { document.getElementById('website-status').textContent = 'Knowledge base ready.'; setTimeout(()=>location.reload(), 800); }
+  else { document.getElementById('website-status').textContent = 'Could not crawl this site.'; }
+});
+
+document.getElementById('upload-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const file = document.getElementById('upload-file').files[0];
+  const fd = new FormData();
+  fd.append('agent_id', AGENT_ID);
+  fd.append('file', file);
+  document.getElementById('upload-status').textContent = 'Uploading & processing...';
+  const res = await fetch('/api/knowledge/upload', { method: 'POST', body: fd });
+  if (res.ok) { document.getElementById('upload-status').textContent = 'Added to knowledge base.'; setTimeout(()=>location.reload(), 800); }
+  else { document.getElementById('upload-status').textContent = 'Could not process this file.'; }
+});
+
+async function resync(id) {
+  await fetch(`/api/knowledge/${id}/resync`, { method: 'POST' });
+  location.reload();
+}
+async function deleteSource(id) {
+  if (!confirm('Remove this knowledge source?')) return;
+  await fetch(`/api/knowledge/${id}`, { method: 'DELETE' });
+  document.querySelector(`tr[data-id="${id}"]`).remove();
+}
+</script>
+{% else %}
+<div class="card empty-state">
+  <div class="empty-state-title">Create an agent first</div>
+  <div style="margin-top:16px;"><a class="btn btn-primary" href="{{ url_for('dashboard.agent_new') }}">+ Create New Agent</a></div>
+</div>
+{% endif %}
+{% endblock %}

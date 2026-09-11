@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Conversations{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Conversations</h1>
+    <p class="page-subtitle">Every chat and voice conversation your AI receptionist has had.</p>
+  </div>
+</div>
+
+<div class="conv-layout">
+  <div class="conv-list">
+    {% if conversations %}
+      {% for c in conversations %}
+      <a class="conv-item {{ 'active' if selected and selected._id == c._id }}" href="{{ url_for('dashboard.conversations', id=c._id) }}">
+        <div class="avatar-sm">{{ 'V' }}</div>
+        <div class="list-row-main">
+          <div class="list-row-title" style="display:flex; align-items:center; gap:6px;">
+            {{ c.agent_name }}
+            {% if c.channel == 'voice' %}<span class="badge badge-blue" style="font-size:9.5px;">🎙 Voice</span>{% else %}<span class="badge badge-gray" style="font-size:9.5px;">💬 Chat</span>{% endif %}
+            {% if c.is_test %}<span class="badge badge-gray" style="font-size:9.5px;">Test</span>{% endif %}
+          </div>
+          <div class="list-row-sub">{{ c.preview or 'New conversation' }}</div>
+        </div>
+        <span class="badge {{ 'badge-purple' if c.status=='handed_off' else ('badge-gray' if c.status=='closed' else 'badge-green') }}" style="font-size:10px;">{{ c.status|capitalize }}</span>
+      </a>
+      {% endfor %}
+    {% else %}
+    <div class="empty-state"><div class="empty-state-title">No conversations yet</div></div>
+    {% endif %}
+  </div>
+
+  <div class="conv-thread">
+    {% if selected %}
+    <div class="conv-thread-header">
+      <div>
+        <div class="list-row-title">{{ selected.agent_name }} <span class="stat-label">· {{ 'Voice' if selected.channel == 'voice' else 'Chat' }} conversation</span></div>
+        <div class="list-row-sub">Visitor {{ selected.visitor_id[:14] }}... {% if selected.visitor_ip %}· IP {{ selected.visitor_ip }}{% endif %}</div>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-sm" onclick="handoff('{{ selected._id }}')">Mark human requested</button>
+        <button class="btn btn-sm" onclick="closeConv('{{ selected._id }}')">Close</button>
+      </div>
+    </div>
+    <div class="conv-messages">
+      {% for m in messages %}
+      <div class="msg-row {{ 'visitor' if m.role == 'visitor' else 'assistant' }}">
+        <div>
+          {% if selected.channel == 'voice' %}<div class="voice-tag">🎙 Voice transcript</div>{% endif %}
+          <div class="msg-bubble">{{ m.content }}</div>
+          <div class="msg-meta">{{ m.created_at[11:16] }}</div>
+        </div>
+      </div>
+      {% else %}
+      <div class="empty-state"><div class="empty-state-title">No messages yet</div></div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="margin: auto;">
+      <div class="empty-state-title">Select a conversation</div>
+      Choose a conversation from the inbox on the left to view its chat or voice transcript.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+async function handoff(id) {
+  await fetch(`/api/conversations/${id}/handoff`, { method: 'POST' });
+  location.reload();
+}
+async function closeConv(id) {
+  await fetch(`/api/conversations/${id}/close`, { method: 'POST' });
+  location.reload();
+}
+</script>
+{% endblock %}

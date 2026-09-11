@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Appointments{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Appointments</h1>
+    <p class="page-subtitle">Appointments and site visits booked by your AI receptionist.</p>
+  </div>
+</div>
+
+<div class="card">
+  {% if appointments %}
+  <table>
+    <thead><tr><th>Lead</th><th>Type</th><th>When</th><th>Address</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for a in appointments %}
+      <tr>
+        <td>{{ a.lead_name }}<br><span class="stat-label">{{ a.lead_phone }}</span></td>
+        <td>{{ a.kind|replace('_',' ')|capitalize }}</td>
+        <td>{{ a.start_time[:16]|replace('T',' ') }}</td>
+        <td>{{ a.address or '-' }}</td>
+        <td><span class="badge {{ 'badge-green' if a.status=='completed' else ('badge-red' if a.status=='canceled' else 'badge-blue') }}">{{ a.status|capitalize }}</span></td>
+        <td>{% if a.status == 'scheduled' %}<button class="btn btn-sm btn-danger" onclick="cancelAppt('{{ a._id }}')">Cancel</button>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="empty-state-title">No appointments yet</div>When your AI books a visit or appointment, it'll show up here.</div>
+  {% endif %}
+</div>
+
+<script>
+async function cancelAppt(id) {
+  if (!confirm('Cancel this appointment?')) return;
+  await fetch(`/api/appointments/${id}/cancel`, { method: 'POST' });
+  location.reload();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% set active = 'admin_users' %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Users</h1>
+    <p class="page-subtitle">Every user across every organization on Recepta.</p>
+  </div>
+</div>
+
+<div class="card">
+  {% if users %}
+  <table>
+    <thead><tr><th>Name</th><th>Email</th><th>Organization</th><th>Role</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.name }}</td>
+        <td>{{ u.email }}</td>
+        <td>{{ u.org_name }}</td>
+        <td>{{ u.role }}</td>
+        <td><span class="badge {{ 'badge-green' if u.is_active else 'badge-red' }}">{{ 'Active' if u.is_active else 'Inactive' }}</span></td>
+        <td style="display:flex; gap:6px;">
+          {% if u.is_active %}
+          <form method="post" action="{{ url_for('admin.deactivate_user', user_id=u._id) }}"><button class="btn btn-sm btn-danger" type="submit">Deactivate</button></form>
+          {% else %}
+          <form method="post" action="{{ url_for('admin.activate_user', user_id=u._id) }}"><button class="btn btn-sm" type="submit">Activate</button></form>
+          {% endif %}
+          <form method="post" action="{{ url_for('admin.delete_user', user_id=u._id) }}" onsubmit="return confirm('Delete this user?')"><button class="btn btn-sm btn-danger" type="submit">Delete</button></form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="empty-state-title">No users yet</div></div>
+  {% endif %}
+</div>
+{% endblock %}

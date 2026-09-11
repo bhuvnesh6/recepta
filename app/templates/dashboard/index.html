@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block plan_card %}
+<div class="plan-card">
+  <div class="plan-card-top">
+    <div class="plan-name">👑 {{ org.plan|capitalize if org else 'Starter' }} Plan <span class="plan-badge">Active</span></div>
+  </div>
+  <div class="progress-track"><div class="progress-fill" style="width:42%"></div></div>
+  <div class="plan-usage-label">42% of monthly usage</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <div class="page-eyebrow">GOOD MORNING, {{ current_user.name.split(' ')[0]|upper if current_user else '' }} 👋</div>
+    <h1 class="page-title">Your AI receptionist is working<br><span class="accent">24/7, bringing in new leads.</span></h1>
+    <p class="page-subtitle">Track performance, manage your agents, and grow your business — all in one place.</p>
+  </div>
+  <div class="page-header-actions">
+    <button class="btn">📅 Last 30 days</button>
+    <a class="btn btn-primary" href="{{ url_for('dashboard.agent_new') }}">+ Create New Agent</a>
+  </div>
+</div>
+
+<div class="grid grid-5" style="margin-bottom:18px;">
+  <div class="card stat-card">
+    <div class="stat-icon">👤</div>
+    <div class="stat-label">Total Visitors</div>
+    <div class="stat-value">{{ stats.total_visitors }}</div>
+    <div class="stat-delta {{ 'up' if deltas.total_visitors >= 0 else 'down' }}">{{ '↑' if deltas.total_visitors >=0 else '↓' }} {{ deltas.total_visitors|abs }}% vs previous 30 days</div>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-icon">💬</div>
+    <div class="stat-label">Conversations</div>
+    <div class="stat-value">{{ stats.conversations }}</div>
+    <div class="stat-delta {{ 'up' if deltas.conversations >= 0 else 'down' }}">{{ '↑' if deltas.conversations >=0 else '↓' }} {{ deltas.conversations|abs }}% vs previous 30 days</div>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-icon">👥</div>
+    <div class="stat-label">Qualified Leads</div>
+    <div class="stat-value">{{ stats.qualified_leads }}</div>
+    <div class="stat-delta {{ 'up' if deltas.qualified_leads >= 0 else 'down' }}">{{ '↑' if deltas.qualified_leads >=0 else '↓' }} {{ deltas.qualified_leads|abs }}% vs previous 30 days</div>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-icon">📅</div>
+    <div class="stat-label">Appointments</div>
+    <div class="stat-value">{{ stats.appointments }}</div>
+    <div class="stat-delta {{ 'up' if deltas.appointments >= 0 else 'down' }}">{{ '↑' if deltas.appointments >=0 else '↓' }} {{ deltas.appointments|abs }}% vs previous 30 days</div>
+  </div>
+  <div class="card stat-card">
+    <div class="stat-icon">📈</div>
+    <div class="stat-label">Conversion Rate</div>
+    <div class="stat-value">{{ stats.conversion_rate }}%</div>
+    <div class="stat-delta up">Visitors → qualified leads</div>
+  </div>
+</div>
+
+<div class="grid grid-main-side" style="margin-bottom:18px;">
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Lead Growth</h3></div>
+    <canvas id="leadGrowthChart" height="90"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Lead Sources</h3></div>
+    <canvas id="leadSourcesChart" height="180"></canvas>
+    <div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+      {% for s in lead_sources %}
+      <div style="display:flex; justify-content:space-between; font-size:12.5px;">
+        <span style="color:var(--text-dim);">{{ s._id|capitalize if s._id else 'Direct' }}</span>
+        <span style="font-weight:600;">{{ s.count }}</span>
+      </div>
+      {% else %}
+      <div class="stat-label">No leads yet</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-main-side">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Recent Conversations</h3>
+      <a class="card-link" href="{{ url_for('dashboard.conversations') }}">View all →</a>
+    </div>
+    {% if recent_conversations %}
+    <table>
+      <thead><tr><th>Visitor</th><th>Message</th><th>Agent</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for c in recent_conversations %}
+        <tr onclick="window.location='{{ url_for('dashboard.conversations') }}?id={{ c._id }}'" style="cursor:pointer;">
+          <td><div class="avatar-sm">V</div></td>
+          <td>{{ c.last_message or 'New conversation' }}</td>
+          <td>{{ c.agent_name }}</td>
+          <td><span class="badge {{ 'badge-purple' if c.status=='handed_off' else ('badge-gray' if c.status=='closed' else 'badge-green') }}">{{ c.status|capitalize }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-title">No conversations yet</div>
+      Publish an agent and add the widget to your site to start chatting with visitors.
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Recent Leads</h3>
+      <a class="card-link" href="{{ url_for('dashboard.leads') }}">View all →</a>
+    </div>
+    {% for l in recent_leads %}
+    <div class="list-row">
+      <div class="avatar-sm">{{ (l.name or '?')[0]|upper }}</div>
+      <div class="list-row-main">
+        <div class="list-row-title">{{ l.name or 'Unknown visitor' }}</div>
+        <div class="list-row-sub">{{ l.requirement or l.source }}</div>
+      </div>
+      <span class="badge {{ 'badge-green' if l.status=='Qualified' else ('badge-blue' if l.status=='New' else ('badge-purple' if l.status=='Appointment' else 'badge-amber')) }}">{{ l.status }}</span>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-title">No leads yet</div>
+      New leads captured by your AI receptionist will show up here.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="grid grid-main-side" style="margin-top:18px;">
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Team Performance</h3></div>
+    {% if team %}
+    <table>
+      <thead><tr><th>Member</th><th>Leads</th><th>Appointments</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for m in team %}
+        <tr>
+          <td>{{ m.name }} <span class="stat-label">· {{ m.get('team_role') or ('Admin' if m.role=='org_admin' else 'Sales') }}</span></td>
+          <td>{{ m.lead_count }}</td>
+          <td>{{ m.appt_count }}</td>
+          <td><span class="status-dot {{ 'online' if m.is_active else 'offline' }}"></span>{{ 'Online' if m.is_active else 'Offline' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="empty-state-title">No team members yet</div>Invite your team from the Team page.</div>
+    {% endif %}
+  </div>
+
+  <div class="card" style="display:flex; flex-direction:column; align-items:center; text-align:center; justify-content:center; gap:10px;">
+    <div style="font-size:15px; font-weight:700;">Your AI Agent is Live</div>
+    <p class="stat-label" style="max-width: 220px;">It's answering questions, capturing leads and booking appointments — even when you're offline.</p>
+    <a class="btn btn-primary" href="{{ url_for('dashboard.agents') }}">View Agents</a>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>
+const ctxLine = document.getElementById('leadGrowthChart');
+new Chart(ctxLine, {
+  type: 'line',
+  data: {
+    labels: ['W1','W2','W3','W4','W5'],
+    datasets: [{
+      label: 'Leads',
+      data: [4, 9, 7, {{ stats.qualified_leads }}, {{ stats.qualified_leads + 2 }}],
+      borderColor: '#c8fa3d', backgroundColor: 'rgba(200,250,61,.08)', fill: true, tension: .35, pointRadius: 0,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#5f636d' } },
+      y: { grid: { color: '#1b1e25' }, ticks: { color: '#5f636d' } }
+    }
+  }
+});
+
+const ctxDonut = document.getElementById('leadSourcesChart');
+new Chart(ctxDonut, {
+  type: 'doughnut',
+  data: {
+    labels: [{% for s in lead_sources %}'{{ s._id or "Direct" }}',{% endfor %}],
+    datasets: [{
+      data: [{% for s in lead_sources %}{{ s.count }},{% endfor %}],
+      backgroundColor: ['#c8fa3d','#6fa8ff','#f0b84f','#b18cff','#ff6b6b'],
+      borderWidth: 0,
+    }]
+  },
+  options: { plugins: { legend: { display: false } }, cutout: '70%' }
+});
+</script>
+{% endblock %}

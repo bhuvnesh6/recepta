@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Organizations{% endblock %}
+{% set active = 'admin_orgs' %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Organizations</h1>
+    <p class="page-subtitle">Every business using Recepta.</p>
+  </div>
+  <button class="btn btn-primary" onclick="openModal('create-org-modal')">+ Create organization</button>
+</div>
+
+<div class="card">
+  {% if orgs %}
+  <table>
+    <thead><tr><th>Organization</th><th>Plan</th><th>Agents</th><th>Users</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for o in orgs %}
+      <tr>
+        <td><a href="{{ url_for('admin.organization_detail', org_id=o._id) }}">{{ o.name }}</a></td>
+        <td>{{ o.plan|capitalize }}</td>
+        <td>{{ o.agent_count }}</td>
+        <td>{{ o.user_count }}</td>
+        <td><span class="badge {{ 'badge-green' if o.status=='active' else 'badge-red' }}">{{ o.status|capitalize }}</span></td>
+        <td style="display:flex; gap:6px;">
+          <form method="post" action="{{ url_for('admin.impersonate', org_id=o._id) }}"><button class="btn btn-sm" type="submit">View as</button></form>
+          {% if o.status == 'active' %}
+          <form method="post" action="{{ url_for('admin.suspend_organization', org_id=o._id) }}"><button class="btn btn-sm btn-danger" type="submit">Suspend</button></form>
+          {% else %}
+          <form method="post" action="{{ url_for('admin.activate_organization', org_id=o._id) }}"><button class="btn btn-sm" type="submit">Activate</button></form>
+          {% endif %}
+          <form method="post" action="{{ url_for('admin.delete_organization', org_id=o._id) }}" onsubmit="return confirm('Delete this organization and all its data?')"><button class="btn btn-sm btn-danger" type="submit">Delete</button></form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="empty-state-title">No organizations yet</div></div>
+  {% endif %}
+</div>
+
+<div class="modal-backdrop" id="create-org-modal">
+  <div class="modal">
+    <div class="modal-header"><h3 class="card-title">Create organization</h3><span class="close-x" onclick="closeModal('create-org-modal')">&times;</span></div>
+    <form method="post" action="{{ url_for('admin.create_organization') }}">
+      <div class="field"><label>Organization name</label><input type="text" name="name" required></div>
+      <div class="field"><label>Plan</label>
+        <select name="plan">
+          {% for p in plans %}<option value="{{ p.slug }}">{{ p.name }}</option>{% else %}<option value="starter">Starter</option>{% endfor %}
+        </select>
+      </div>
+      <div class="divider"></div>
+      <div class="field"><label>Owner name</label><input type="text" name="owner_name"></div>
+      <div class="field"><label>Owner email</label><input type="email" name="owner_email"></div>
+      <div class="field"><label>Temporary password</label><input type="text" name="owner_password" placeholder="changeme123"></div>
+      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Create organization</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

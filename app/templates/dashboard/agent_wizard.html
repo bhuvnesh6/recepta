@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Create Agent{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Create your AI receptionist</h1>
+    <p class="page-subtitle">Tell us about the business — you'll add knowledge, greeting, and appearance next.</p>
+  </div>
+</div>
+
+<div class="card" style="max-width: 560px;">
+  <form id="agent-form">
+    <div class="field">
+      <label>Agent name</label>
+      <input type="text" name="name" required placeholder="Ava - Front Desk Assistant">
+    </div>
+    <div class="field">
+      <label>Business name</label>
+      <input type="text" name="business_name" required placeholder="ABC Heating & Air">
+    </div>
+    <div class="field">
+      <label>Industry</label>
+      <select name="industry">
+        <option>HVAC</option><option>Roofing</option><option>Plumbing</option><option>Solar</option>
+        <option>Home Services</option><option>Real Estate</option><option>Construction</option>
+        <option>Dental</option><option>Med Spa</option><option>Legal</option><option>Auto Services</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Business website (optional)</label>
+      <input type="url" name="website" placeholder="https://yourbusiness.com">
+      <div class="field-hint">We'll be able to crawl this later to build your agent's knowledge base.</div>
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <textarea name="description" placeholder="What does this business do? Who are its customers?"></textarea>
+    </div>
+    <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center; padding:11px;">Create agent &amp; continue</button>
+  </form>
+</div>
+
+<script>
+document.getElementById('agent-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const payload = Object.fromEntries(fd.entries());
+  const res = await fetch('/api/agents', {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+  });
+  if (res.ok) {
+    const agent = await res.json();
+    window.location = `/dashboard/agents/${agent._id}`;
+  } else {
+    alert('Could not create agent. Please check the fields and try again.');
+  }
+});
+</script>
+{% endblock %}

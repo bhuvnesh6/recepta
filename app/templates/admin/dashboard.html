@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% set active = 'admin_dashboard' %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Platform overview</h1>
+    <p class="page-subtitle">All organizations, agents, and usage across Recepta.</p>
+  </div>
+</div>
+
+<div class="grid grid-4" style="margin-bottom:18px;">
+  <div class="card stat-card"><div class="stat-label">Organizations</div><div class="stat-value">{{ stats.total_orgs }}</div><div class="stat-delta up">{{ stats.active_orgs }} active</div></div>
+  <div class="card stat-card"><div class="stat-label">Agents</div><div class="stat-value">{{ stats.total_agents }}</div><div class="stat-delta up">{{ stats.active_agents }} live</div></div>
+  <div class="card stat-card"><div class="stat-label">Total Leads</div><div class="stat-value">{{ stats.total_leads }}</div></div>
+  <div class="card stat-card"><div class="stat-label">Conversations</div><div class="stat-value">{{ stats.total_conversations }}</div></div>
+</div>
+
+<div class="grid grid-4" style="margin-bottom:18px;">
+  <div class="card stat-card"><div class="stat-label">Appointments</div><div class="stat-value">{{ stats.total_appointments }}</div></div>
+  <div class="card stat-card"><div class="stat-label">New signups (30d)</div><div class="stat-value">{{ stats.recent_signups }}</div></div>
+  <div class="card stat-card"><div class="stat-label">AI Messages (30d)</div><div class="stat-value">{{ usage.get('ai_messages', 0) }}</div></div>
+  <div class="card stat-card"><div class="stat-label">Voice Minutes (30d)</div><div class="stat-value">{{ usage.get('voice_minutes', 0) }}</div></div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3 class="card-title">Recent signups</h3><a class="card-link" href="{{ url_for('admin.organizations') }}">View all →</a></div>
+  {% if recent_orgs %}
+  <table>
+    <thead><tr><th>Organization</th><th>Plan</th><th>Status</th><th>Created</th></tr></thead>
+    <tbody>
+      {% for o in recent_orgs %}
+      <tr onclick="window.location='{{ url_for('admin.organization_detail', org_id=o._id) }}'" style="cursor:pointer;">
+        <td>{{ o.name }}</td>
+        <td>{{ o.plan|capitalize }}</td>
+        <td><span class="badge {{ 'badge-green' if o.status=='active' else 'badge-red' }}">{{ o.status|capitalize }}</span></td>
+        <td>{{ o.created_at[:10] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="empty-state-title">No organizations yet</div></div>
+  {% endif %}
+</div>
+{% endblock %}

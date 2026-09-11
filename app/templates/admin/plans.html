@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Plans{% endblock %}
+{% set active = 'admin_plans' %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Plans</h1>
+    <p class="page-subtitle">Pricing plans and feature limits offered to organizations.</p>
+  </div>
+  <button class="btn btn-primary" onclick="openModal('create-plan-modal')">+ Create plan</button>
+</div>
+
+<div class="grid grid-3">
+  {% for p in plans %}
+  <div class="card">
+    <div class="list-row-title" style="font-size:16px;">{{ p.name }}</div>
+    <div class="stat-value" style="margin: 8px 0;">${{ p.monthly_price|int }}<span class="stat-label">/mo</span></div>
+    <div class="stat-label" style="margin-bottom:14px;">${{ p.setup_fee|int }} one-time setup · first month included</div>
+    <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:16px;">
+      {% for f in p.features %}<div style="font-size:12.5px;">✓ {{ f }}</div>{% endfor %}
+    </div>
+    <form method="post" action="{{ url_for('admin.delete_plan', plan_id=p._id) }}" onsubmit="return confirm('Delete this plan?')">
+      <button class="btn btn-sm btn-danger" type="submit" style="width:100%; justify-content:center;">Delete plan</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="card empty-state"><div class="empty-state-title">No plans yet</div>Create Starter, Growth, and Pro plans to offer to organizations.</div>
+  {% endfor %}
+</div>
+
+<div class="modal-backdrop" id="create-plan-modal">
+  <div class="modal">
+    <div class="modal-header"><h3 class="card-title">Create plan</h3><span class="close-x" onclick="closeModal('create-plan-modal')">&times;</span></div>
+    <form method="post" action="{{ url_for('admin.create_plan') }}">
+      <div class="field"><label>Name</label><input type="text" name="name" required placeholder="Growth"></div>
+      <div class="field"><label>Slug</label><input type="text" name="slug" required placeholder="growth"></div>
+      <div class="field"><label>Monthly price ($)</label><input type="number" name="monthly_price" required placeholder="149"></div>
+      <div class="field"><label>Setup fee ($)</label><input type="number" name="setup_fee" value="249"></div>
+      <div class="field"><label>Features (one per line)</label><textarea name="features" placeholder="Unlimited chat conversations&#10;500 voice minutes/mo&#10;3 team members"></textarea></div>
+      <div class="grid grid-2">
+        <div class="field"><label>Agent limit</label><input type="number" name="limit_agents" value="1"></div>
+        <div class="field"><label>Voice minutes</label><input type="number" name="limit_voice_minutes" value="200"></div>
+        <div class="field"><label>AI messages</label><input type="number" name="limit_ai_messages" value="2000"></div>
+        <div class="field"><label>Team members</label><input type="number" name="limit_team_members" value="5"></div>
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Create plan</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

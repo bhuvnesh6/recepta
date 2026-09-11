@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}System Logs{% endblock %}
+{% set active = 'admin_logs' %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">System Logs</h1>
+    <p class="page-subtitle">Platform-level events, AI provider errors, and activity for support.</p>
+  </div>
+</div>
+
+<div class="card">
+  {% if logs %}
+  <table>
+    <thead><tr><th>Time</th><th>Event</th><th>Severity</th><th>Message</th></tr></thead>
+    <tbody>
+      {% for l in logs %}
+      <tr>
+        <td>{{ l.created_at[:19]|replace('T',' ') }}</td>
+        <td>{{ l.event_type }}</td>
+        <td><span class="badge {{ 'badge-red' if l.severity=='error' else ('badge-amber' if l.severity=='warning' else 'badge-gray') }}">{{ l.severity }}</span></td>
+        <td>{{ l.message }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="empty-state-title">No log entries yet</div></div>
+  {% endif %}
+</div>
+{% endblock %}

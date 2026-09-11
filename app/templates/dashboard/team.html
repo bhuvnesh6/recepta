@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Team{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Team</h1>
+    <p class="page-subtitle">Team members can view assigned leads, update statuses, and take conversations.</p>
+  </div>
+  <button class="btn btn-primary" onclick="openModal('add-member-modal')">+ Add team member</button>
+</div>
+
+<div class="card">
+  {% if team %}
+  <table>
+    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for m in team %}
+      <tr>
+        <td>{{ m.name }}</td>
+        <td>{{ m.email }}</td>
+        <td>{{ 'Org Admin' if m.role == 'org_admin' else (m.get('team_role') or 'Team Member') }}</td>
+        <td><span class="status-dot {{ 'online' if m.is_active else 'offline' }}"></span>{{ 'Active' if m.is_active else 'Inactive' }}</td>
+        <td>
+          {% if m.role == 'team_user' %}
+          <form method="post" action="{{ url_for('dashboard.team_remove', user_id=m._id) }}" style="display:inline;">
+            <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('Remove this team member?')">Remove</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="empty-state-title">No team members yet</div></div>
+  {% endif %}
+</div>
+
+<div class="modal-backdrop" id="add-member-modal">
+  <div class="modal">
+    <div class="modal-header"><h3 class="card-title">Add team member</h3><span class="close-x" onclick="closeModal('add-member-modal')">&times;</span></div>
+    <form method="post" action="{{ url_for('dashboard.team_create') }}">
+      <div class="field"><label>Name</label><input type="text" name="name" required></div>
+      <div class="field"><label>Email</label><input type="email" name="email" required></div>
+      <div class="field"><label>Role</label>
+        <select name="team_role"><option>Sales</option><option>Manager</option><option>Support</option></select>
+      </div>
+      <div class="field"><label>Temporary password</label><input type="text" name="password" placeholder="changeme123"></div>
+      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">Add member</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create account · {{ app_name }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="auth-shell">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <img src="{{ url_for('static', filename='images/logo-icon.png') }}" alt="Recepta">
+        <span>Recepta</span>
+      </div>
+      <h1 class="auth-title">Create your account</h1>
+      <p class="auth-sub">Set up your business and build your AI receptionist.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" action="{{ url_for('auth.register_post') }}">
+        <div class="field">
+          <label for="org_name">Business name</label>
+          <input type="text" id="org_name" name="org_name" required placeholder="ABC Heating & Air">
+        </div>
+        <div class="field">
+          <label for="name">Your name</label>
+          <input type="text" id="name" name="name" required placeholder="Jane Doe">
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required placeholder="you@business.com">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required minlength="8" placeholder="At least 8 characters">
+        </div>
+        <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center; padding:11px;">Create account</button>
+      </form>
+      <div class="auth-footer">
+        Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

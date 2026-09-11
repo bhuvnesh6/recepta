@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Billing{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1 class="page-title">Billing</h1>
+    <p class="page-subtitle">Your plan and subscription details.</p>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h3 class="card-title" style="margin-bottom:14px;">Current plan</h3>
+    <dl class="kv-grid">
+      <dt>Plan</dt><dd>{{ plan.name if plan else org.plan|capitalize }}</dd>
+      <dt>Monthly price</dt><dd>${{ plan.monthly_price if plan else '-' }}/mo</dd>
+      <dt>Setup fee</dt><dd>${{ plan.setup_fee if plan else '249' }} one-time · first month included</dd>
+      <dt>Status</dt><dd><span class="badge {{ 'badge-green' if org.subscription_status=='active' else 'badge-amber' }}">{{ org.subscription_status|capitalize }}</span></dd>
+      <dt>Setup payment</dt><dd>{{ org.setup_payment_status|capitalize }}</dd>
+    </dl>
+  </div>
+  {% if plan %}
+  <div class="card">
+    <h3 class="card-title" style="margin-bottom:14px;">Plan features</h3>
+    {% for f in plan.features %}
+    <div class="list-row"><div class="list-row-main">✓ {{ f }}</div></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

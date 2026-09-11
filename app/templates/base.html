@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Recepta{% endblock %} · {{ app_name }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="{{ url_for('static', filename='images/logo-icon.png') }}" alt="Recepta">
+        <span>Recepta</span>
+      </div>
+
+      {% macro navicon(name) -%}
+        {% if name == 'dashboard' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        {% elif name == 'agents' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/></svg>
+        {% elif name == 'leads' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        {% elif name == 'conversations' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        {% elif name == 'appointments' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        {% elif name == 'team' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        {% elif name == 'knowledge' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        {% elif name == 'notifications' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        {% elif name == 'analytics' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 5-8"/></svg>
+        {% elif name == 'usage' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        {% elif name == 'settings' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>
+        {% elif name == 'billing' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        {% elif name == 'orgs' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1"/></svg>
+        {% elif name == 'users' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        {% elif name == 'plans' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 6.8L21 10l-5 4.6L17.4 22 12 18l-5.4 4 1.4-7.4-5-4.6 6.6-1.2z"/></svg>
+        {% elif name == 'logs' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h4"/></svg>
+        {% endif %}
+      {%- endmacro %}
+
+      {% if current_user and current_user.role == 'platform_admin' %}
+        <a class="nav-link {{ 'active' if active=='admin_dashboard' }}" href="{{ url_for('admin.index') }}">{{ navicon('dashboard') }} Dashboard</a>
+        <a class="nav-link {{ 'active' if active=='admin_orgs' }}" href="{{ url_for('admin.organizations') }}">{{ navicon('orgs') }} Organizations</a>
+        <a class="nav-link {{ 'active' if active=='admin_users' }}" href="{{ url_for('admin.users') }}">{{ navicon('users') }} Users</a>
+        <a class="nav-link {{ 'active' if active=='admin_plans' }}" href="{{ url_for('admin.plans') }}">{{ navicon('plans') }} Plans</a>
+        <a class="nav-link {{ 'active' if active=='admin_logs' }}" href="{{ url_for('admin.logs') }}">{{ navicon('logs') }} System Logs</a>
+        <div class="nav-section-gap"></div>
+        <div class="sidebar-footer">
+          <a class="nav-link" href="{{ url_for('auth.logout') }}">Log out</a>
+        </div>
+      {% else %}
+        <a class="nav-link {{ 'active' if active=='dashboard' }}" href="{{ url_for('dashboard.index') }}">{{ navicon('dashboard') }} Dashboard</a>
+        <a class="nav-link {{ 'active' if active=='agents' }}" href="{{ url_for('dashboard.agents') }}">{{ navicon('agents') }} Agents</a>
+        <a class="nav-link {{ 'active' if active=='leads' }}" href="{{ url_for('dashboard.leads') }}">{{ navicon('leads') }} Leads</a>
+        <a class="nav-link {{ 'active' if active=='conversations' }}" href="{{ url_for('dashboard.conversations') }}">{{ navicon('conversations') }} Conversations</a>
+        <a class="nav-link {{ 'active' if active=='appointments' }}" href="{{ url_for('dashboard.appointments') }}">{{ navicon('appointments') }} Appointments</a>
+        <a class="nav-link {{ 'active' if active=='team' }}" href="{{ url_for('dashboard.team') }}">{{ navicon('team') }} Team</a>
+        <a class="nav-link {{ 'active' if active=='knowledge' }}" href="{{ url_for('dashboard.knowledge') }}">{{ navicon('knowledge') }} Knowledge Base</a>
+        <a class="nav-link {{ 'active' if active=='notifications' }}" href="{{ url_for('dashboard.notifications') }}">
+          {{ navicon('notifications') }} Notifications
+          <span class="nav-badge" id="nav-unread-badge" style="display:none"></span>
+        </a>
+        <a class="nav-link {{ 'active' if active=='analytics' }}" href="{{ url_for('dashboard.analytics') }}">{{ navicon('analytics') }} Analytics</a>
+        <a class="nav-link {{ 'active' if active=='usage' }}" href="{{ url_for('dashboard.usage') }}">{{ navicon('usage') }} Usage</a>
+        <a class="nav-link {{ 'active' if active=='settings' }}" href="{{ url_for('dashboard.settings') }}">{{ navicon('settings') }} Settings</a>
+        <a class="nav-link {{ 'active' if active=='billing' }}" href="{{ url_for('dashboard.billing') }}">{{ navicon('billing') }} Billing</a>
+
+        <div class="sidebar-footer">
+          {% block plan_card %}{% endblock %}
+          <a class="nav-link" href="{{ url_for('auth.logout') }}">Log out</a>
+        </div>
+      {% endif %}
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div class="search-box">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" placeholder="Search anything... (leads, agents, conversations, etc.)">
+          <kbd>⌘K</kbd>
+        </div>
+        <div class="topbar-right">
+          {% if current_user and current_user.role != 'platform_admin' %}
+          <a class="icon-btn" href="{{ url_for('dashboard.notifications') }}" title="Notifications">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="icon-dot" id="topbar-unread-dot" style="display:none"></span>
+          </a>
+          {% endif %}
+          {% if current_user %}
+          <div class="user-chip">
+            <div class="avatar">{{ current_user.name[0]|upper if current_user.name else 'U' }}</div>
+            <div class="user-chip-meta">
+              <div class="name">{{ current_user.name }}</div>
+              <div class="role">{{ 'Admin' if current_user.role == 'platform_admin' else ('Org Admin' if current_user.role == 'org_admin' else current_user.get('team_role','Team')) }}</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

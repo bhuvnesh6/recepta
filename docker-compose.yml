@@ -1,0 +1,27 @@
+services:
+  web:
+    build: .
+    container_name: recepta-web
+    restart: unless-stopped
+    ports:
+      - "6651:6651"
+    env_file:
+      - .env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/recepta
+    depends_on:
+      - mongo
+    volumes:
+      - ./app/static/images:/app/app/static/images
+
+  mongo:
+    image: mongo:7
+    container_name: recepta-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - recepta_mongo_data:/data/db
+
+volumes:
+  recepta_mongo_data:

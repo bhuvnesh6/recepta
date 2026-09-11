@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}{{ agent.name }}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <div class="page-eyebrow"><a href="{{ url_for('dashboard.agents') }}" style="color:var(--text-faint);">Agents</a> / {{ agent.name }}</div>
+    <h1 class="page-title">{{ agent.name }}</h1>
+    <p class="page-subtitle">{{ agent.business_name }} · <span class="badge {{ 'badge-green' if agent.status=='live' else 'badge-amber' }}">{{ agent.status|capitalize }}</span></p>
+  </div>
+  <div class="page-header-actions">
+    <a class="btn" href="{{ url_for('dashboard.knowledge', agent_id=agent._id) }}">Knowledge Base</a>
+    {% if agent.status == 'live' %}
+    <button class="btn" onclick="pauseAgent()">Pause Agent</button>
+    {% else %}
+    <button class="btn btn-primary" onclick="publishAgent()">Publish Agent</button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-main-side">
+  <div>
+    <div class="section-tabs" id="tabs">
+      <div class="section-tab active" data-tab="general">General</div>
+      <div class="section-tab" data-tab="ai">AI &amp; Greeting</div>
+      <div class="section-tab" data-tab="leadcapture">Lead Capture</div>
+      <div class="section-tab" data-tab="widget">Widget</div>
+      <div class="section-tab" data-tab="embed">Embed Code</div>
+    </div>
+
+    <div class="tab-panel" id="panel-general">
+      <div class="card">
+        <div class="field"><label>Agent name</label><input type="text" id="f-name" value="{{ agent.name }}"></div>
+        <div class="field"><label>Business name</label><input type="text" id="f-business_name" value="{{ agent.business_name }}"></div>
+        <div class="field"><label>Description</label><textarea id="f-description">{{ agent.description }}</textarea></div>
+        <div class="field">
+          <label>Language</label>
+          <select id="f-language">
+            <option value="en" {{ 'selected' if agent.language=='en' }}>English</option>
+            <option value="es" {{ 'selected' if agent.language=='es' }}>Spanish</option>
+            <option value="fr" {{ 'selected' if agent.language=='fr' }}>French</option>
+            <option value="hi" {{ 'selected' if agent.language=='hi' }}>Hindi</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="saveTab(['name','business_name','description','language'])">Save changes</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-ai" style="display:none;">
+      <div class="card">
+        <div class="field">
+          <label>System prompt / custom instructions</label>
+          <textarea id="f-system_prompt" rows="6" placeholder="Answer questions about the company, qualify leads, collect contact info, never invent prices...">{{ agent.system_prompt }}</textarea>
+        </div>
+        <div class="field"><label>Personality</label><input type="text" id="f-personality" value="{{ agent.personality }}" placeholder="Warm, professional, concise"></div>
+        <div class="field"><label>Greeting text</label><textarea id="f-greeting_text">{{ agent.greeting_text }}</textarea></div>
+        <button class="btn btn-primary" onclick="saveTab(['system_prompt','personality','greeting_text'])">Save changes</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-leadcapture" style="display:none;">
+      <div class="card">
+        <div class="field"><label>Required fields</label>
+          {% for f in ['name','email','phone','requirement','location','budget','preferred_time'] %}
+          <label class="checkbox-row" style="margin-bottom:8px;">
+            <input type="checkbox" class="lead-field-cb" value="{{ f }}" {{ 'checked' if f in agent.lead_fields.required }}>
+            {{ f|capitalize }}
+          </label>
+          {% endfor %}
+        </div>
+        <div class="field checkbox-row"><input type="checkbox" id="f-tool-booking" {{ 'checked' if agent.tools_enabled.booking }}><label style="margin:0;">Enable appointment booking</label></div>
+        <div class="field checkbox-row"><input type="checkbox" id="f-tool-sitevisit" {{ 'checked' if agent.tools_enabled.site_visit }}><label style="margin:0;">Enable site visit requests</label></div>
+        <div class="field checkbox-row"><input type="checkbox" id="f-tool-handoff" {{ 'checked' if agent.tools_enabled.human_handoff }}><label style="margin:0;">Enable human handoff</label></div>
+        <button class="btn btn-primary" onclick="saveLeadCapture()" style="margin-top:12px;">Save changes</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-widget" style="display:none;">
+      <div class="card">
+        <div class="field"><label>Primary color</label><input type="text" id="f-widget-color" value="{{ agent.widget.primary_color }}"></div>
+        <div class="field"><label>Position</label>
+          <select id="f-widget-position">
+            <option value="bottom-right" {{ 'selected' if agent.widget.position=='bottom-right' }}>Bottom right</option>
+            <option value="bottom-left" {{ 'selected' if agent.widget.position=='bottom-left' }}>Bottom left</option>
+          </select>
+        </div>
+        <div class="field"><label>Theme</label>
+          <select id="f-widget-theme">
+            <option value="dark" {{ 'selected' if agent.widget.theme=='dark' }}>Dark</option>
+            <option value="light" {{ 'selected' if agent.widget.theme=='light' }}>Light</option>
+          </select>
+        </div>
+        <div class="field"><label>Open delay (seconds)</label><input type="number" id="f-widget-delay" value="{{ agent.widget.delay_seconds }}"></div>
+        <button class="btn btn-primary" onclick="saveWidget()">Save changes</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-embed" style="display:none;">
+      <div class="card">
+        <p class="stat-label" style="margin-bottom:10px;">Paste this before the closing <code>&lt;/body&gt;</code> tag of the business website.</p>
+        <pre style="background:var(--bg-elevated); border:1px solid var(--border-soft); padding:14px; border-radius:10px; font-size:12.5px; overflow-x:auto;">{{ widget_snippet }}</pre>
+        <button class="btn btn-sm" onclick="navigator.clipboard.writeText(document.querySelector('#panel-embed pre').innerText)">Copy code</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="display:flex; flex-direction:column; height: 560px;">
+    <div class="card-header"><h3 class="card-title">Live Preview</h3><span class="badge badge-blue">Test mode</span></div>
+    <div id="preview-messages" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:12px;">
+      <div class="msg-row assistant"><div class="msg-bubble">{{ agent.greeting_text }}</div></div>
+    </div>
+    <form id="preview-form" style="display:flex; gap:8px;">
+      <input type="text" id="preview-input" placeholder="Try chatting with your agent..." style="flex:1;">
+      <button class="btn btn-primary" type="submit">Send</button>
+    </form>
+  </div>
+</div>
+
+<script>
+const AGENT_ID = "{{ agent._id }}";
+
+document.querySelectorAll('.section-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).style.display = 'block';
+  });
+});
+
+async function patchAgent(payload) {
+  const res = await fetch(`/api/agents/${AGENT_ID}`, {
+    method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+  });
+  if (res.ok) { flashSaved(); } else { alert('Could not save changes.'); }
+}
+function flashSaved() {
+  const el = document.createElement('div');
+  el.textContent = 'Saved';
+  el.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#c8fa3d;color:#0a0b0f;padding:8px 16px;border-radius:8px;font-weight:600;font-size:13px;z-index:999;';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+
+function saveTab(fields) {
+  const payload = {};
+  fields.forEach(f => payload[f] = document.getElementById('f-' + f).value);
+  patchAgent(payload);
+}
+
+function saveLeadCapture() {
+  const required = Array.from(document.querySelectorAll('.lead-field-cb:checked')).map(cb => cb.value);
+  patchAgent({
+    lead_fields: { required, optional: [] },
+    tools_enabled: {
+      lead_capture: true,
+      booking: document.getElementById('f-tool-booking').checked,
+      site_visit: document.getElementById('f-tool-sitevisit').checked,
+      human_handoff: document.getElementById('f-tool-handoff').checked,
+    }
+  });
+}
+
+function saveWidget() {
+  patchAgent({
+    widget: {
+      primary_color: document.getElementById('f-widget-color').value,
+      position: document.getElementById('f-widget-position').value,
+      theme: document.getElementById('f-widget-theme').value,
+      delay_seconds: parseInt(document.getElementById('f-widget-delay').value || 6, 10),
+    }
+  });
+}
+
+async function publishAgent() {
+  const res = await fetch(`/api/agents/${AGENT_ID}/publish`, { method: 'POST' });
+  if (res.ok) location.reload(); else alert('Could not publish. Add a greeting and description first.');
+}
+async function pauseAgent() {
+  const res = await fetch(`/api/agents/${AGENT_ID}/pause`, { method: 'POST' });
+  if (res.ok) location.reload();
+}
+
+let previewConversationId = null;
+document.getElementById('preview-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('preview-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const box = document.getElementById('preview-messages');
+  box.insertAdjacentHTML('beforeend', `<div class="msg-row visitor"><div class="msg-bubble">${text}</div></div>`);
+  input.value = '';
+  box.scrollTop = box.scrollHeight;
+  const res = await fetch(`/api/agents/${AGENT_ID}/test-chat`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ message: text, conversation_id: previewConversationId })
+  });
+  const data = await res.json();
+  previewConversationId = data.conversation_id;
+  box.insertAdjacentHTML('beforeend', `<div class="msg-row assistant"><div class="msg-bubble">${data.reply}</div></div>`);
+  box.scrollTop = box.scrollHeight;
+});
+</script>
+{% endblock %}

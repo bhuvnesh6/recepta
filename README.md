@@ -127,10 +127,6 @@ App is now running at **http://localhost:6651**.
 
 Default seeded logins (override via `.env` before seeding):
 
-| Role            | Email                   | Password       |
-|-----------------|--------------------------|-----------------|
-| Platform admin  | admin@recepta.local     | ChangeMe123!    |
-| Demo org owner  | owner@abcheating.local  | ChangeMe123!    |
 
 **Change these passwords immediately in any non-local environment.**
 

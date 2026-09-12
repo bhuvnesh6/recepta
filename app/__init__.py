@@ -1,5 +1,6 @@
 import os
 from flask import Flask
+from flask_cors import CORS
 from app.config import Config
 from app.extensions import close_db, get_db, init_indexes
 
@@ -40,6 +41,19 @@ def create_app(config_class=Config):
     app.register_blueprint(api_notifications_bp)
     app.register_blueprint(api_team_bp)
     app.register_blueprint(widget_bp)
+
+    # CORS is enabled ONLY for the public widget endpoints, since those are
+    # called from arbitrary customer websites. Dashboard/admin/API routes are
+    # intentionally left without CORS - they rely on same-origin session
+    # cookies and must never be opened to other origins.
+    CORS(
+        app,
+        resources={
+            r"/api/widget/*": {"origins": "*"},
+            r"/widget.js": {"origins": "*"},
+        },
+        supports_credentials=False,
+    )
 
     @app.context_processor
     def inject_globals():

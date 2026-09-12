@@ -1,8 +1,11 @@
 import os
 from flask import Flask
 from flask_cors import CORS
+from flask_sock import Sock
 from app.config import Config
 from app.extensions import close_db, get_db, init_indexes
+
+sock = Sock()
 
 
 def create_app(config_class=Config):
@@ -28,7 +31,7 @@ def create_app(config_class=Config):
     from app.routes.api_knowledge import api_knowledge_bp
     from app.routes.api_notifications import api_notifications_bp
     from app.routes.api_team import api_team_bp
-    from app.routes.widget import widget_bp
+    from app.routes.widget import widget_bp, register_widget_socket
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
@@ -54,6 +57,12 @@ def create_app(config_class=Config):
         },
         supports_credentials=False,
     )
+
+    # Real-time voice pipeline WebSocket route (/ws/widget/<agent_id>).
+    # flask-sock registers routes directly against the app, so this is
+    # wired up here rather than via a normal Blueprint.
+    sock.init_app(app)
+    register_widget_socket(sock)
 
     @app.context_processor
     def inject_globals():

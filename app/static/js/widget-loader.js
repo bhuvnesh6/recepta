@@ -5,19 +5,29 @@
   })();
   var AGENT_ID = scriptTag.getAttribute('data-agent-id');
   var ORIGIN = new URL(scriptTag.src).origin;
+  var WS_ORIGIN = ORIGIN.replace(/^http/, 'ws');
   if (!AGENT_ID) { console.error('[Recepta] Missing data-agent-id on widget script tag.'); return; }
 
   var STORAGE_KEY = 'recepta_visitor_id_' + AGENT_ID;
   var visitorId = localStorage.getItem(STORAGE_KEY) || null;
-  var conversationId = null;
+  var chatConversationId = null;   // conversation used by the "Type to chat" tab (REST)
   var config = null;
-  var mediaRecorder = null;
-  var audioChunks = [];
-  var currentAudio = null;
-  var micState = 'idle'; // idle | listening | thinking | speaking
+
+  // ---------- Live voice call state ----------
+  var callState = 'idle'; // idle | connecting | listening | thinking | speaking
+  var voiceWs = null;
+  var voiceConversationId = null;
+  var micStream = null;
+  var micAudioCtx = null;
+  var micProcessor = null;
+  var micSource = null;
+  var playbackCtx = null;
+  var playHead = 0;
+  var activeSources = [];
+  var pingTimer = null;
 
   var MIC_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 12 15z"/><path d="M19 11.5a7 7 0 0 1-14 0"/><line x1="12" y1="18.5" x2="12" y2="22"/><line x1="8.5" y1="22" x2="15.5" y2="22"/></svg>';
-  var STOP_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>';
+  var HANGUP_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>';
   var CHAT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
   var SEND_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>';
   var CLOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>';
@@ -83,13 +93,14 @@
       .recepta-greeting { padding: 12px 16px; font-size: 12.5px; color: ${isLight ? '#5f636d' : '#9a9ea8'}; border-bottom: 1px solid ${borderColor}; flex-shrink: 0; }
 
       /* ---------- Voice view ---------- */
-      .recepta-voice-view { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 20px; overflow-y: auto; }
+      .recepta-voice-view { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 20px; overflow-y: auto; }
       .recepta-mic-circle { width: 108px; height: 108px; border-radius: 50%; background: ${primary}; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0a0b0f; position: relative; flex-shrink: 0; transition: transform .15s ease; }
       .recepta-mic-circle:active { transform: scale(.96); }
       .recepta-mic-circle svg { width: 40px; height: 40px; }
-      .recepta-mic-circle.listening { background: #ff5a5a; color: #fff; animation: recepta-ring-red 1.4s infinite; }
-      .recepta-mic-circle.speaking { animation: recepta-ring-primary 1.1s infinite; }
+      .recepta-mic-circle.listening { animation: recepta-ring-primary 1.6s infinite; }
+      .recepta-mic-circle.speaking { background: #ff5a5a; color: #fff; animation: recepta-ring-red 1.1s infinite; }
       .recepta-mic-circle.thinking { opacity: .55; cursor: default; }
+      .recepta-mic-circle.connecting { opacity: .55; cursor: default; }
       @keyframes recepta-ring-red { 0% { box-shadow: 0 0 0 0 rgba(255,90,90,.55); } 70% { box-shadow: 0 0 0 22px rgba(255,90,90,0); } 100% { box-shadow: 0 0 0 0 rgba(255,90,90,0); } }
       @keyframes recepta-ring-primary { 0% { box-shadow: 0 0 0 0 rgba(${rgb},.55); } 70% { box-shadow: 0 0 0 22px rgba(${rgb},0); } 100% { box-shadow: 0 0 0 0 rgba(${rgb},0); } }
 
@@ -100,8 +111,10 @@
       .recepta-thinking-dots span:nth-child(3) { animation-delay: .3s; }
       @keyframes recepta-dot-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .4; } 30% { transform: translateY(-4px); opacity: 1; } }
 
-      .recepta-voice-transcript { width: 100%; max-height: 190px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+      .recepta-voice-transcript { width: 100%; max-height: 210px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
       .recepta-voice-transcript .recepta-msg { max-width: 92%; font-size: 12.5px; }
+      .recepta-voice-transcript .recepta-msg.interim { opacity: .55; font-style: italic; }
+      .recepta-hangup-hint { font-size: 11px; color: ${isLight ? '#b5b9c2' : '#5f636d'}; }
 
       /* ---------- Chat view ---------- */
       .recepta-chat-view { flex: 1; display: none; flex-direction: column; overflow: hidden; }
@@ -124,6 +137,11 @@
   }
 
   function scrollToBottom(container) { container.scrollTop = container.scrollHeight; }
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
 
   async function initSession(channel) {
     var res = await fetch(ORIGIN + '/api/widget/session', {
@@ -132,8 +150,8 @@
     });
     var data = await res.json();
     visitorId = data.visitor_id;
-    conversationId = data.conversation_id;
     localStorage.setItem(STORAGE_KEY, visitorId);
+    return data.conversation_id;
   }
 
   function boot() {
@@ -188,8 +206,9 @@
     // ---------- Voice view ----------
     var micCircle = el('button', { class: 'recepta-mic-circle', html: MIC_SVG, 'aria-label': 'Talk' });
     var voiceStatus = el('div', { class: 'recepta-voice-status', html: 'Tap to talk' });
+    var hangupHint = el('div', { class: 'recepta-hangup-hint', html: '' });
     var voiceTranscript = el('div', { class: 'recepta-voice-transcript' });
-    var voiceView = el('div', { class: 'recepta-voice-view' }, [micCircle, voiceStatus, voiceTranscript]);
+    var voiceView = el('div', { class: 'recepta-voice-view' }, [micCircle, voiceStatus, hangupHint, voiceTranscript]);
 
     // ---------- Chat view ----------
     var messagesEl = el('div', { class: 'recepta-messages' });
@@ -221,13 +240,15 @@
     chatTab.addEventListener('click', function () { activateTab('chat'); });
     activateTab('voice');
 
-    // ---- Chat ----
+    // ============================================================
+    // Chat tab (REST, unchanged pattern - typing indicator while waiting)
+    // ============================================================
     function addChatMessage(role, text) {
       messagesEl.appendChild(el('div', { class: 'recepta-msg ' + role, html: escapeHtml(text) }));
       scrollToBottom(messagesEl);
     }
     function showTypingIndicator() {
-      var typing = el('div', { class: 'recepta-msg assistant', id: 'recepta-typing' }, [
+      var typing = el('div', { class: 'recepta-msg assistant' }, [
         el('div', { class: 'recepta-typing-dots' }, [el('span'), el('span'), el('span')]),
       ]);
       messagesEl.appendChild(typing);
@@ -238,12 +259,12 @@
 
     async function sendChat(text) {
       addChatMessage('visitor', text);
-      if (!conversationId) await initSession('chat');
+      if (!chatConversationId) chatConversationId = await initSession('chat');
       var typingNode = showTypingIndicator();
       try {
         var res = await fetch(ORIGIN + '/api/widget/chat', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agent_id: AGENT_ID, conversation_id: conversationId, message: text })
+          body: JSON.stringify({ agent_id: AGENT_ID, conversation_id: chatConversationId, message: text })
         });
         var data = await res.json();
         removeTypingIndicator(typingNode);
@@ -261,86 +282,199 @@
     });
     chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendBtn.click(); });
 
-    // ---- Voice ----
-    function setMicState(state) {
-      micState = state;
-      micCircle.classList.remove('listening', 'speaking', 'thinking');
-      if (state === 'listening') {
+    // ============================================================
+    // Voice tab - real-time streaming call
+    // ============================================================
+    function setCallState(state) {
+      callState = state;
+      micCircle.classList.remove('listening', 'speaking', 'thinking', 'connecting');
+      if (state === 'connecting') {
+        micCircle.classList.add('connecting');
+        micCircle.innerHTML = MIC_SVG;
+        voiceStatus.innerHTML = 'Connecting...';
+        hangupHint.textContent = '';
+      } else if (state === 'listening') {
         micCircle.classList.add('listening');
-        micCircle.innerHTML = STOP_SVG;
-        voiceStatus.innerHTML = 'Listening... tap to stop';
+        micCircle.innerHTML = HANGUP_SVG;
+        voiceStatus.innerHTML = 'Listening...';
+        hangupHint.textContent = 'Tap to hang up';
       } else if (state === 'thinking') {
         micCircle.classList.add('thinking');
-        micCircle.innerHTML = MIC_SVG;
+        micCircle.innerHTML = HANGUP_SVG;
         voiceStatus.innerHTML = '<span class="recepta-thinking-dots"><span></span><span></span><span></span></span> Thinking';
+        hangupHint.textContent = 'Tap to hang up';
       } else if (state === 'speaking') {
         micCircle.classList.add('speaking');
-        micCircle.innerHTML = MIC_SVG;
+        micCircle.innerHTML = HANGUP_SVG;
         voiceStatus.innerHTML = 'Speaking...';
+        hangupHint.textContent = 'Tap to hang up';
       } else {
         micCircle.innerHTML = MIC_SVG;
         voiceStatus.innerHTML = 'Tap to talk';
+        hangupHint.textContent = '';
       }
     }
 
-    function addVoiceLine(role, text) {
-      voiceTranscript.appendChild(el('div', { class: 'recepta-msg ' + role, html: escapeHtml(text) }));
+    var interimNode = null;
+    function addVoiceLine(role, text, interim) {
+      if (interim) {
+        if (!interimNode) {
+          interimNode = el('div', { class: 'recepta-msg ' + role + ' interim' });
+          voiceTranscript.appendChild(interimNode);
+        }
+        interimNode.textContent = text;
+      } else {
+        if (interimNode && role === 'visitor') { interimNode.remove(); interimNode = null; }
+        voiceTranscript.appendChild(el('div', { class: 'recepta-msg ' + role, html: escapeHtml(text) }));
+      }
       scrollToBottom(voiceTranscript);
     }
 
-    async function sendVoice(blob) {
-      setMicState('thinking');
-      if (!conversationId) await initSession('voice');
-      var fd = new FormData();
-      fd.append('agent_id', AGENT_ID);
-      fd.append('conversation_id', conversationId);
-      fd.append('audio', blob, 'audio.webm');
-      try {
-        var res = await fetch(ORIGIN + '/api/widget/voice', { method: 'POST', body: fd });
-        var data = await res.json();
-        if (data.transcript) addVoiceLine('visitor', data.transcript);
-        addVoiceLine('assistant', data.reply || "Sorry, I couldn't hear that clearly.");
-        if (data.audio_base64) {
-          setMicState('speaking');
-          currentAudio = new Audio('data:audio/mpeg;base64,' + data.audio_base64);
-          currentAudio.onended = function () { setMicState('idle'); };
-          currentAudio.onerror = function () { setMicState('idle'); };
-          currentAudio.play().catch(function () { setMicState('idle'); });
-        } else {
-          setMicState('idle');
+    var assistantLineNode = null;
+    function appendAssistantDelta(delta) {
+      if (!assistantLineNode) {
+        assistantLineNode = el('div', { class: 'recepta-msg assistant' });
+        voiceTranscript.appendChild(assistantLineNode);
+      }
+      assistantLineNode.textContent += delta;
+      scrollToBottom(voiceTranscript);
+    }
+    function finalizeAssistantLine() { assistantLineNode = null; }
+
+    // ---- Audio playback (scheduled queue, 22.05kHz PCM16 frames) ----
+    function ensurePlaybackCtx() {
+      if (!playbackCtx) {
+        playbackCtx = micAudioCtx; // share the mic's AudioContext (browsers allow one per page; resampling on playback is automatic)
+        playHead = playbackCtx.currentTime;
+      }
+    }
+    function playPcm16Frame(buf) {
+      if (!playbackCtx) return;
+      var pcm = new Int16Array(buf);
+      var float32 = new Float32Array(pcm.length);
+      for (var i = 0; i < pcm.length; i++) float32[i] = pcm[i] / 0x8000;
+      var audioBuffer = playbackCtx.createBuffer(1, float32.length, 22050);
+      audioBuffer.copyToChannel(float32, 0);
+      var source = playbackCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(playbackCtx.destination);
+      var startAt = Math.max(playbackCtx.currentTime, playHead);
+      source.start(startAt);
+      playHead = startAt + audioBuffer.duration;
+      activeSources.push(source);
+      source.onended = function () {
+        var idx = activeSources.indexOf(source);
+        if (idx >= 0) activeSources.splice(idx, 1);
+      };
+    }
+    function stopAllPlayback() {
+      activeSources.forEach(function (s) { try { s.stop(); } catch (e) {} });
+      activeSources = [];
+      if (playbackCtx) playHead = playbackCtx.currentTime;
+    }
+
+    async function startMicCapture() {
+      var stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
+      micStream = stream;
+      micAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      ensurePlaybackCtx();
+      micSource = micAudioCtx.createMediaStreamSource(stream);
+      micProcessor = micAudioCtx.createScriptProcessor(4096, 1, 1);
+      micSource.connect(micProcessor);
+      micProcessor.connect(micAudioCtx.destination);
+      micProcessor.onaudioprocess = function (e) {
+        if (!voiceWs || voiceWs.readyState !== WebSocket.OPEN) return;
+        var input = e.inputBuffer.getChannelData(0);
+        var pcm = new Int16Array(input.length);
+        for (var i = 0; i < input.length; i++) {
+          var s = Math.max(-1, Math.min(1, input[i]));
+          pcm[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
         }
-      } catch (e) {
-        addVoiceLine('assistant', "Sorry, I couldn't reach the server. Please try again.");
-        setMicState('idle');
+        voiceWs.send(pcm.buffer);
+      };
+    }
+
+    function stopMicCapture() {
+      if (micProcessor) { try { micProcessor.disconnect(); } catch (e) {} micProcessor = null; }
+      if (micSource) { try { micSource.disconnect(); } catch (e) {} micSource = null; }
+      if (micStream) { micStream.getTracks().forEach(function (t) { t.stop(); }); micStream = null; }
+      if (micAudioCtx) { try { micAudioCtx.close(); } catch (e) {} micAudioCtx = null; }
+      playbackCtx = null;
+      activeSources = [];
+    }
+
+    function handleWsMessage(ev) {
+      if (typeof ev.data === 'string') {
+        var msg;
+        try { msg = JSON.parse(ev.data); } catch (e) { return; }
+        if (msg.type === 'status') {
+          if (msg.state === 'speaking') setCallState('speaking');
+          else if (msg.state === 'thinking') setCallState('thinking');
+          else if (msg.state === 'listening') setCallState('listening');
+        } else if (msg.type === 'user_transcript') {
+          addVoiceLine('visitor', msg.text, !msg.final);
+        } else if (msg.type === 'assistant_delta') {
+          appendAssistantDelta(msg.text);
+        } else if (msg.type === 'assistant_done') {
+          finalizeAssistantLine();
+        } else if (msg.type === 'interrupt') {
+          stopAllPlayback();
+        } else if (msg.type === 'error') {
+          voiceStatus.textContent = msg.message || 'Something went wrong.';
+        }
+      } else {
+        playPcm16Frame(ev.data);
       }
     }
 
-    micCircle.addEventListener('click', async function () {
-      if (micState === 'thinking') return;
-      if (micState === 'speaking') {
-        if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-        setMicState('idle');
-        return;
-      }
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-        return;
-      }
+    async function startCall() {
+      if (callState !== 'idle') return;
+      setCallState('connecting');
       try {
-        var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-        mediaRecorder.ondataavailable = function (e) { audioChunks.push(e.data); };
-        mediaRecorder.onstop = function () {
-          var blob = new Blob(audioChunks, { type: 'audio/webm' });
-          stream.getTracks().forEach(function (t) { t.stop(); });
-          sendVoice(blob);
+        voiceConversationId = await initSession('voice');
+        await startMicCapture();
+
+        var url = WS_ORIGIN + '/ws/widget/' + AGENT_ID
+          + '?conversation_id=' + encodeURIComponent(voiceConversationId)
+          + '&visitor_id=' + encodeURIComponent(visitorId);
+        voiceWs = new WebSocket(url);
+        voiceWs.binaryType = 'arraybuffer';
+
+        voiceWs.onopen = function () {
+          setCallState('listening');
+          pingTimer = setInterval(function () {
+            if (voiceWs && voiceWs.readyState === WebSocket.OPEN) {
+              voiceWs.send(JSON.stringify({ type: 'ping' }));
+            }
+          }, 20000);
         };
-        mediaRecorder.start();
-        setMicState('listening');
+        voiceWs.onmessage = handleWsMessage;
+        voiceWs.onerror = function () {
+          voiceStatus.textContent = "Couldn't connect. Please try again.";
+        };
+        voiceWs.onclose = function () { endCall(); };
       } catch (e) {
         voiceStatus.textContent = 'Microphone access is needed for voice chat.';
+        setCallState('idle');
       }
+    }
+
+    function endCall() {
+      if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+      if (voiceWs) {
+        try { voiceWs.onclose = null; voiceWs.close(); } catch (e) {}
+        voiceWs = null;
+      }
+      stopAllPlayback();
+      stopMicCapture();
+      finalizeAssistantLine();
+      setCallState('idle');
+    }
+
+    micCircle.addEventListener('click', function () {
+      if (callState === 'idle') startCall();
+      else if (callState === 'connecting') { /* ignore taps mid-connect */ }
+      else endCall();
     });
 
     // ---------- Auto-open with greeting after configured delay ----------
@@ -348,12 +482,6 @@
     setTimeout(function () {
       panel.classList.add('open');
     }, delay);
-  }
-
-  function escapeHtml(str) {
-    var div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
   }
 
   if (document.readyState === 'loading') {

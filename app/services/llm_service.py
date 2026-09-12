@@ -5,6 +5,7 @@ Business logic never talks to Groq/Mistral/OpenRouter directly - it calls
 llm.generate(...) / llm.stream(...). Swapping providers means editing this
 file only.
 """
+import json
 import requests
 from flask import current_app
 
@@ -49,7 +50,9 @@ class GroqProvider(LLMProvider):
         }
 
     def stream(self, messages, tools=None, temperature=0.4, max_tokens=800):
-        # Streaming generator - yields text chunks. Falls back to one-shot if no key.
+        """Streaming generator - yields plain text deltas as they arrive
+        (already parsed out of the provider's SSE `data:` frames), not raw
+        JSON. Falls back to one-shot if no key configured."""
         if not self.api_key:
             yield _stub_response(messages)["content"]
             return
@@ -67,8 +70,18 @@ class GroqProvider(LLMProvider):
                 if not line:
                     continue
                 text = line.decode("utf-8")
-                if text.startswith("data: ") and text != "data: [DONE]":
-                    yield text[6:]
+                if not text.startswith("data: "):
+                    continue
+                data = text[6:]
+                if data == "[DONE]":
+                    break
+                try:
+                    obj = json.loads(data)
+                    delta = obj["choices"][0]["delta"].get("content")
+                    if delta:
+                        yield delta
+                except Exception:
+                    continue
 
 
 class MistralProvider(LLMProvider):

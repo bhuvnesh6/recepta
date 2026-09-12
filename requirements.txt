@@ -11,3 +11,9 @@ numpy==1.26.4
 itsdangerous==2.2.0
 Flask-WTF==1.2.1
 Flask-Cors==4.0.1
+
+# Real-time streaming voice pipeline
+Flask-Sock==0.7.0
+deepgram-sdk==3.11.0
+sarvamai==0.1.33
+gevent==26.8.0

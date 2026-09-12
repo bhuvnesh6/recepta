@@ -2,13 +2,13 @@ from app.extensions import get_db
 from app.models import build_usage_event
 
 
-def track(organization_id, agent_id, event_type, quantity=1):
-    db = get_db()
+def track(organization_id, agent_id, event_type, quantity=1, db=None):
+    db = db or get_db()
     db.usage_events.insert_one(build_usage_event(organization_id, agent_id, event_type, quantity))
 
 
-def summary(organization_id, since=None):
-    db = get_db()
+def summary(organization_id, since=None, db=None):
+    db = db or get_db()
     match = {"organization_id": organization_id}
     if since:
         match["created_at"] = {"$gte": since}

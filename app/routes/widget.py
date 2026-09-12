@@ -42,6 +42,7 @@ def widget_preview(agent_id):
                             agent_name=agent["business_name"] if agent else None,
                             widget_base_url=f"https://{request.host}")
 
+
 @widget_bp.get("/widget.js")
 def widget_js():
     return send_from_directory(current_app.static_folder + "/js", "widget-loader.js",
@@ -111,7 +112,9 @@ def widget_chat():
 
 @widget_bp.post("/api/widget/voice")
 def widget_voice():
-    """Voice turn: audio in -> Deepgram STT -> chat pipeline -> TTS -> audio (base64) out."""
+    """Batch voice fallback (record -> stop -> send) for browsers/situations
+    where the streaming WebSocket pipeline isn't available. The main voice
+    experience is the /ws/widget/<agent_id> real-time pipeline below."""
     db = get_db()
     agent_id = request.form.get("agent_id")
     conversation_id = request.form.get("conversation_id")
@@ -163,3 +166,91 @@ def widget_lead_capture():
         budget=data.get("budget"), is_test=conversation.get("is_test", False),
     )
     return jsonify({"lead_id": lead_id})
+
+
+# ============================================================
+# Real-time streaming voice pipeline (WebSocket)
+# ============================================================
+_VOICE_CONFIG_KEYS = [
+    "DEEPGRAM_API_KEY", "DEEPGRAM_STREAMING_MODEL", "DEEPGRAM_STREAMING_LANGUAGE",
+    "GROQ_API_KEY", "TTS_API_KEY", "VOICE_TTS_MODEL", "VOICE_TTS_SPEAKER", "VOICE_TTS_PACE",
+    "VOICE_MIC_SAMPLE_RATE", "VOICE_TTS_SAMPLE_RATE",
+    "VOICE_RESPONSE_PAUSE_SECS", "VOICE_RESPONSE_PAUSE_JITTER_SECS",
+    "VOICE_SHORT_UTTERANCE_MAX_WORDS", "VOICE_SHORT_UTTERANCE_PAUSE_SECS",
+    "VOICE_BARGE_IN_GRACE_SECS", "VOICE_BARGE_IN_CONFIRM_MIN_CHARS",
+    "VOICE_BARGE_IN_CONFIRM_TIMEOUT_SECS",
+]
+
+
+def register_widget_socket(sock):
+    """Registers /ws/widget/<agent_id>, the real-time streaming voice
+    endpoint. Called once from the app factory (flask-sock binds routes
+    directly to the app, not through a Blueprint).
+
+    The browser must call POST /api/widget/session first (same as the
+    batch voice/chat flow) to get a conversation_id + visitor_id - that
+    keeps visitor IP capture, multi-tenant scoping, and conversation
+    creation on one code path, and is passed here as query params:
+
+        wss://.../ws/widget/<agent_id>?conversation_id=...&visitor_id=...
+    """
+    import json as _json
+    from app.services.voice_stream_service import WidgetVoiceSession
+
+    @sock.route("/ws/widget/<agent_id>")
+    def widget_voice_ws(ws, agent_id):
+        db = get_db()
+        conversation_id = request.args.get("conversation_id")
+        visitor_id = request.args.get("visitor_id")
+
+        agent = db.agents.find_one({"_id": ObjectId(agent_id), "status": "live"})
+        conversation = None
+        if conversation_id:
+            conversation = db.conversations.find_one({"_id": ObjectId(conversation_id), "agent_id": agent_id})
+
+        if not agent or not conversation:
+            try:
+                ws.send(_json.dumps({"type": "error", "message": "Voice session not available. Refresh and try again."}))
+            except Exception:
+                pass
+            return
+
+        cfg = {k: current_app.config.get(k) for k in _VOICE_CONFIG_KEYS}
+        missing = [k for k in ("DEEPGRAM_API_KEY", "GROQ_API_KEY") if not cfg.get(k)]
+        if missing:
+            try:
+                ws.send(_json.dumps({"type": "error",
+                                      "message": f"Voice pipeline not configured yet ({', '.join(missing)} missing)."}))
+            except Exception:
+                pass
+            return
+
+        session = WidgetVoiceSession(ws, db, cfg, agent["organization_id"], agent, conversation_id, visitor_id)
+        if not session.start():
+            return
+
+        db.conversations.update_one({"_id": ObjectId(conversation_id)}, {"$set": {"channel": "voice"}})
+
+        session._send_json({"type": "ready"})
+        greeting = agent.get("greeting_text") or "Hi! How can I help you today?"
+        session.speak(greeting)
+
+        log_prefix = f"[voice_ws:{conversation_id}]"
+        try:
+            while True:
+                msg = ws.receive()
+                if msg is None:
+                    break
+                if isinstance(msg, (bytes, bytearray)):
+                    session.feed_audio(bytes(msg))
+                    continue
+                try:
+                    payload = _json.loads(msg)
+                except Exception:
+                    continue
+                if payload.get("type") == "ping":
+                    session._send_json({"type": "pong"})
+        except Exception as e:
+            current_app.logger.warning(f"{log_prefix} loop error: {e}")
+        finally:
+            session.close()

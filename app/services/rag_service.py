@@ -35,9 +35,9 @@ def chunk_text(text: str, target_words=CHUNK_TARGET_TOKENS, overlap_words=CHUNK_
     return chunks
 
 
-def index_document(organization_id, agent_id, source_id, text, base_metadata=None):
+def index_document(organization_id, agent_id, source_id, text, base_metadata=None, db=None):
     """Chunk, embed, and store a document's text. Returns number of chunks created."""
-    db = get_db()
+    db = db or get_db()
     base_metadata = base_metadata or {}
     chunks = chunk_text(text)
     docs = []
@@ -51,8 +51,8 @@ def index_document(organization_id, agent_id, source_id, text, base_metadata=Non
     return len(docs)
 
 
-def delete_source_chunks(organization_id, agent_id, source_id):
-    db = get_db()
+def delete_source_chunks(organization_id, agent_id, source_id, db=None):
+    db = db or get_db()
     db.knowledge_chunks.delete_many({
         "organization_id": organization_id,
         "agent_id": agent_id,
@@ -60,9 +60,9 @@ def delete_source_chunks(organization_id, agent_id, source_id):
     })
 
 
-def retrieve(organization_id, agent_id, query, top_k=5, min_score=0.05):
+def retrieve(organization_id, agent_id, query, top_k=5, min_score=0.05, db=None):
     """Scoped semantic search. Only ever searches this org+agent's chunks."""
-    db = get_db()
+    db = db or get_db()
     query_vec = embed(query)
     cursor = db.knowledge_chunks.find({
         "organization_id": organization_id,

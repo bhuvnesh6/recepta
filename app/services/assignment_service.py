@@ -1,6 +1,8 @@
 """
 Lead assignment engine: evaluates active rules in priority order, falls
 back to round robin among the org's online team members.
+
+Accepts an optional `db=` (see agent_tools.py for why).
 """
 from app.extensions import get_db
 
@@ -25,8 +27,8 @@ def _rule_matches(lead, rule):
     return True
 
 
-def _round_robin_assignee(organization_id):
-    db = get_db()
+def _round_robin_assignee(organization_id, db=None):
+    db = db or get_db()
     team = list(db.users.find({
         "organization_id": organization_id,
         "role": {"$in": ["org_admin", "team_user"]},
@@ -43,12 +45,12 @@ def _round_robin_assignee(organization_id):
     return str(counts[0][1]["_id"]) if counts else None
 
 
-def auto_assign(organization_id, lead: dict):
-    db = get_db()
+def auto_assign(organization_id, lead: dict, db=None):
+    db = db or get_db()
     rules = list(db.assignment_rules.find({
         "organization_id": organization_id, "is_active": True
     }).sort("priority", 1))
     for rule in rules:
         if _rule_matches(lead, rule):
             return rule.get("assignee_user_id")
-    return _round_robin_assignee(organization_id)
+    return _round_robin_assignee(organization_id, db=db)

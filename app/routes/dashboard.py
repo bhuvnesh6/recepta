@@ -110,10 +110,10 @@ def agent_detail(agent_id):
         flash("Agent not found.", "error")
         return redirect(url_for("dashboard.agents"))
     sources = list(db.knowledge_sources.find({"agent_id": agent_id}))
-    widget_snippet = f'<script src="{request.host_url.rstrip("/")}/widget.js" data-agent-id="{agent_id}"></script>'
+    
+    widget_snippet = f'<script src="https://{request.host}/widget.js" data-agent-id="{agent_id}"></script>'
     return render_template("dashboard/agent_detail.html", agent=serialize(agent),
                             sources=serialize_many(sources), widget_snippet=widget_snippet)
-
 
 @dashboard_bp.get("/leads")
 @login_required

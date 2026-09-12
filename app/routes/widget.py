@@ -40,8 +40,7 @@ def widget_preview(agent_id):
     agent = db.agents.find_one({"_id": ObjectId(agent_id)})
     return render_template("widget/embed_demo.html", agent_id=agent_id,
                             agent_name=agent["business_name"] if agent else None,
-                            widget_base_url=request.host_url.rstrip("/"))
-
+                            widget_base_url=f"https://{request.host}")
 
 @widget_bp.get("/widget.js")
 def widget_js():

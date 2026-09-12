@@ -14,6 +14,7 @@
     {% else %}
     <button class="btn btn-primary" onclick="publishAgent()">Publish Agent</button>
     {% endif %}
+    <button class="btn btn-danger" onclick="deleteAgent()">Delete Agent</button>
   </div>
 </div>
 
@@ -76,7 +77,33 @@
 
     <div class="tab-panel" id="panel-widget" style="display:none;">
       <div class="card">
-        <div class="field"><label>Primary color</label><input type="text" id="f-widget-color" value="{{ agent.widget.primary_color }}"></div>
+        <div class="field">
+          <label>Widget icon</label>
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div id="icon-preview" style="width:56px; height:56px; border-radius:50%; background: {{ agent.widget.primary_color }}; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid var(--border-soft); flex-shrink:0;">
+              {% if agent.widget.avatar_url %}
+              <img src="{{ agent.widget.avatar_url }}" style="width:100%; height:100%; object-fit:cover;" alt="Widget icon">
+              {% else %}
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a0b0f" stroke-width="2"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z"/><path d="M17 11a5 5 0 0 1-10 0M12 18v3"/></svg>
+              {% endif %}
+            </div>
+            <div>
+              <input type="file" id="icon-file" accept=".png,.jpg,.jpeg,.webp,.svg" style="display:none;" onchange="uploadIcon()">
+              <button type="button" class="btn btn-sm" onclick="document.getElementById('icon-file').click()">Upload logo / face / icon</button>
+              <div class="field-hint">PNG, JPG, WEBP or SVG, up to 2MB. Shown as the round launcher button on the widget.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Primary color</label>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <input type="color" id="f-widget-color" value="{{ agent.widget.primary_color }}" style="width:48px; height:38px; padding:2px; cursor:pointer;">
+            <span id="widget-color-hex" class="stat-label">{{ agent.widget.primary_color }}</span>
+          </div>
+          <div class="field-hint">Pick the color for the launcher bubble, the mic button, and visitor chat bubbles.</div>
+        </div>
+
         <div class="field"><label>Position</label>
           <select id="f-widget-position">
             <option value="bottom-right" {{ 'selected' if agent.widget.position=='bottom-right' }}>Bottom right</option>
@@ -96,7 +123,7 @@
 
     <div class="tab-panel" id="panel-embed" style="display:none;">
       <div class="card">
-        <p class="stat-label" style="margin-bottom:10px;">Paste this before the closing <code>&lt;/body&gt;</code> tag of the business website.</p>
+        <p class="stat-label" style="margin-bottom:10px;">Paste this before the closing <code>&lt;/body&gt;</code> tag of the business website. The script is always served over <strong>https</strong>, even if you're viewing this dashboard over plain http.</p>
         <pre style="background:var(--bg-elevated); border:1px solid var(--border-soft); padding:14px; border-radius:10px; font-size:12.5px; overflow-x:auto;">{{ widget_snippet }}</pre>
         <button class="btn btn-sm" onclick="navigator.clipboard.writeText(document.querySelector('#panel-embed pre').innerText)">Copy code</button>
       </div>
@@ -160,6 +187,15 @@ function saveLeadCapture() {
   });
 }
 
+const colorInput = document.getElementById('f-widget-color');
+if (colorInput) {
+  colorInput.addEventListener('input', () => {
+    document.getElementById('widget-color-hex').textContent = colorInput.value;
+    const preview = document.getElementById('icon-preview');
+    if (preview && !preview.querySelector('img')) preview.style.background = colorInput.value;
+  });
+}
+
 function saveWidget() {
   patchAgent({
     widget: {
@@ -171,6 +207,24 @@ function saveWidget() {
   });
 }
 
+async function uploadIcon() {
+  const fileInput = document.getElementById('icon-file');
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { alert('Icon must be under 2MB.'); return; }
+  const fd = new FormData();
+  fd.append('icon', file);
+  const res = await fetch(`/api/agents/${AGENT_ID}/icon`, { method: 'POST', body: fd });
+  const data = await res.json();
+  if (res.ok) {
+    const preview = document.getElementById('icon-preview');
+    preview.innerHTML = `<img src="${data.avatar_url}" style="width:100%; height:100%; object-fit:cover;" alt="Widget icon">`;
+    flashSaved();
+  } else {
+    alert(data.message || 'Could not upload icon. Make sure Supabase storage is configured in .env.');
+  }
+}
+
 async function publishAgent() {
   const res = await fetch(`/api/agents/${AGENT_ID}/publish`, { method: 'POST' });
   if (res.ok) location.reload(); else alert('Could not publish. Add a greeting and description first.');
@@ -178,6 +232,12 @@ async function publishAgent() {
 async function pauseAgent() {
   const res = await fetch(`/api/agents/${AGENT_ID}/pause`, { method: 'POST' });
   if (res.ok) location.reload();
+}
+async function deleteAgent() {
+  if (!confirm('Delete this agent permanently? Its knowledge base, leads history stay, but the agent and its widget will stop working immediately.')) return;
+  const res = await fetch(`/api/agents/${AGENT_ID}`, { method: 'DELETE' });
+  if (res.ok) window.location = '/dashboard/agents';
+  else alert('Could not delete this agent.');
 }
 
 let previewConversationId = null;

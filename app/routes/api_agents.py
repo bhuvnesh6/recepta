@@ -69,8 +69,9 @@ def publish_agent(agent_id):
     if not agent:
         return jsonify({"error": "not_found"}), 404
     db.agents.update_one({"_id": ObjectId(agent_id)}, {"$set": {"status": "live", "updated_at": now()}})
+    # Always https:// - this snippet goes on a real customer website.
     return jsonify({"status": "live", "embed_code":
-                     f'<script src="{request.host_url.rstrip("/")}/widget.js" data-agent-id="{agent_id}"></script>'})
+                     f'<script src="https://{request.host}/widget.js" data-agent-id="{agent_id}"></script>'})
 
 
 @api_agents_bp.post("/<agent_id>/pause")
@@ -92,6 +93,47 @@ def delete_agent(agent_id):
     db.knowledge_sources.delete_many({"agent_id": agent_id, "organization_id": org_id})
     db.knowledge_chunks.delete_many({"agent_id": agent_id, "organization_id": org_id})
     return jsonify({"deleted": True})
+
+
+@api_agents_bp.post("/<agent_id>/icon")
+@roles_required("org_admin")
+def upload_icon(agent_id):
+    """Upload a custom widget icon (logo/face/etc). Stored via the storage
+    provider and saved as agent.widget.avatar_url, which the public widget
+    config endpoint already exposes and widget-loader.js uses as the
+    launcher bubble image."""
+    from app.services.storage_service import get_storage_provider
+
+    db = get_db()
+    org_id = get_scoped_organization_id()
+    agent = db.agents.find_one({"_id": ObjectId(agent_id), "organization_id": org_id})
+    if not agent:
+        return jsonify({"error": "not_found"}), 404
+
+    file = request.files.get("icon")
+    if not file or not file.filename:
+        return jsonify({"error": "no_file"}), 400
+
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in {"png", "jpg", "jpeg", "webp", "svg"}:
+        return jsonify({"error": "unsupported_file_type"}), 400
+
+    data = file.read()
+    if len(data) > 2 * 1024 * 1024:
+        return jsonify({"error": "file_too_large", "message": "Icon must be under 2MB"}), 400
+
+    storage = get_storage_provider()
+    storage_path = f"{org_id}/{agent_id}/widget-icon.{ext}"
+    url = storage.upload(storage_path, data, content_type=file.mimetype)
+    if not url:
+        return jsonify({"error": "storage_not_configured",
+                         "message": "Configure SUPABASE_URL/SUPABASE_KEY in .env to upload images."}), 500
+
+    db.agents.update_one(
+        {"_id": ObjectId(agent_id), "organization_id": org_id},
+        {"$set": {"widget.avatar_url": url, "updated_at": now()}},
+    )
+    return jsonify({"avatar_url": url})
 
 
 @api_agents_bp.post("/<agent_id>/test-chat")

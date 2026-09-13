@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recepta - Your AI Website Receptionist</title>
+  <meta name="description" content="Recepta turns your website into a 24/7 AI receptionist that answers questions, captures leads, qualifies visitors, and books appointments automatically.">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+</head>
+<body class="lp-body">
+
+  <!-- ================= NAV ================= -->
+  <nav class="lp-nav">
+    <a class="lp-nav-brand" href="#home">
+      <img src="{{ url_for('static', filename='images/logo-icon.png') }}" alt="Recepta">
+      <span>Recepta</span>
+    </a>
+    <div class="lp-nav-links" id="lp-nav-links">
+      <a href="#home">Home</a>
+      <a href="#about">About</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="lp-nav-actions">
+      <a class="lp-btn lp-btn-sm" href="{{ url_for('auth.login') }}">Log in</a>
+      <a class="lp-btn lp-btn-primary lp-btn-sm" href="{{ url_for('auth.register') }}">Sign up</a>
+      <button class="lp-burger" id="lp-burger" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ================= HERO ================= -->
+  <section id="home" class="lp-hero">
+    <div>
+      <div class="lp-hero-badge">✦ AI Website Receptionist</div>
+      <h1>Your website deserves a receptionist that <span class="accent">never sleeps.</span></h1>
+      <p>Recepta answers visitor questions, chats or talks with them naturally, captures and qualifies every lead, and books appointments automatically — all day, every day, without anyone on your team lifting a finger.</p>
+      <div class="lp-hero-ctas">
+        <a class="lp-btn lp-btn-primary lp-btn-lg" href="{{ url_for('auth.register') }}">Start Now</a>
+        <a class="lp-btn lp-btn-lg" href="#features">See how it works</a>
+      </div>
+      <div class="lp-hero-note">No credit card required to get started · Setup in minutes</div>
+    </div>
+
+    <div class="lp-hero-demo">
+      <div class="lp-demo-backdrop"></div>
+      <div class="lp-mockup-site">
+        <div class="lp-mockup-site-header">
+          <span class="lp-mockup-dot"></span><span class="lp-mockup-dot"></span><span class="lp-mockup-dot"></span>
+        </div>
+        <div class="lp-mockup-lines">
+          <div></div><div></div><div></div><div></div>
+        </div>
+
+        <!-- Looping decorative demo: bubble -> types greeting -> "speaking" -> lead captured -->
+        <div class="lp-demo-panel" id="lp-demo-panel">
+          <div class="lp-demo-panel-header">Ava · ABC Home Services</div>
+          <div class="lp-demo-panel-body">
+            <div class="lp-demo-msg" id="lp-demo-greeting"></div>
+            <div class="lp-demo-status" id="lp-demo-status">
+              <span class="lp-demo-mic-dot"></span> Speaking...
+            </div>
+            <div class="lp-demo-lead-card" id="lp-demo-lead-card">
+              <div class="lp-demo-lead-check">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+              </div>
+              <div class="lp-demo-lead-text"><strong>Lead captured</strong>John S. · AC repair needed</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lp-demo-bubble" id="lp-demo-bubble">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ABOUT ================= -->
+  <section id="about" class="lp-section lp-about">
+    <div class="lp-about-img-wrap">
+      <img src="{{ url_for('static', filename='img/botrep.png') }}" alt="Recepta AI receptionist">
+    </div>
+    <div>
+      <div class="lp-eyebrow">About Recepta</div>
+      <h2 class="lp-h2">An AI receptionist installed directly on your website.</h2>
+      <p class="lp-lead">Recepta isn't just a chatbot. It's a dedicated AI team member that learns your business from your website and documents, talks to visitors in chat or natural voice, and turns conversations into qualified leads and booked appointments — automatically, around the clock.</p>
+      <div class="lp-about-points">
+        <div class="lp-about-point">
+          <div class="lp-about-point-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </div>
+          <div class="lp-about-point-text"><strong>Never miss a visitor.</strong> Answers questions and starts conversations 24/7, even while your team is offline.</div>
+        </div>
+        <div class="lp-about-point">
+          <div class="lp-about-point-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <div class="lp-about-point-text"><strong>Turns visitors into leads.</strong> Naturally collects names, contact details, and what they need — no rigid forms.</div>
+        </div>
+        <div class="lp-about-point">
+          <div class="lp-about-point-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          </div>
+          <div class="lp-about-point-text"><strong>Books the appointment too.</strong> Checks real availability and confirms visits without back-and-forth emails.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FEATURES ================= -->
+  <section id="features" class="lp-section">
+    <div class="lp-eyebrow">Features</div>
+    <h2 class="lp-h2">Everything a real receptionist does. None of the payroll.</h2>
+    <p class="lp-lead">Built for home services, real estate, clinics, and any business where a missed visitor is a missed customer.</p>
+
+    <div class="lp-features-grid">
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <div class="lp-feature-title">Chat &amp; Real Voice</div>
+        <div class="lp-feature-desc">Visitors can type or actually talk to your AI receptionist with natural, low-latency voice conversations.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+        <div class="lp-feature-title">Learns Your Business</div>
+        <div class="lp-feature-desc">Crawls your website and reads your PDFs/docs, so answers come from your real business info — never made up.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="lp-feature-title">Lead Capture &amp; Qualification</div>
+        <div class="lp-feature-desc">Naturally collects name, contact info, and requirements, and flags high-intent visitors as qualified leads.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+        <div class="lp-feature-title">Appointment Booking</div>
+        <div class="lp-feature-desc">Checks real availability and books appointments or site visits directly inside the conversation.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="lp-feature-title">Smart Team Assignment</div>
+        <div class="lp-feature-desc">Routes each lead to the right person automatically — by rule, territory, or simple round robin.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg></div>
+        <div class="lp-feature-title">Multi-language</div>
+        <div class="lp-feature-desc">Talks to visitors in the language they're comfortable in, no separate setup needed.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 5-8"/></svg></div>
+        <div class="lp-feature-title">Real Analytics</div>
+        <div class="lp-feature-desc">See visitors, conversations, leads, and conversion rate on a live dashboard — no guessing what's working.</div>
+      </div>
+      <div class="lp-feature-card">
+        <div class="lp-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="2"/><circle cx="19" cy="17" r="2"/><circle cx="6" cy="17" r="2"/><path d="M13.5 8.5L6 15M13.5 8.5L19 15"/></svg></div>
+        <div class="lp-feature-title">Fully Customizable</div>
+        <div class="lp-feature-desc">Your logo, your colors, your greeting, your voice — the widget looks like it belongs on your site.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PRICING ================= -->
+  <section id="pricing" class="lp-section">
+    <div class="lp-eyebrow">Pricing</div>
+    <h2 class="lp-h2">Simple plans. No surprises.</h2>
+    <p class="lp-lead">Every plan includes a one-time setup fee, and your first month is on us.</p>
+
+    <div class="lp-pricing-grid">
+      <div class="lp-price-card">
+        <div class="lp-price-name">Starter</div>
+        <div class="lp-price-amount">$80<span>/mo</span></div>
+        <div class="lp-price-meta">$249 one-time setup</div>
+        <div class="lp-price-free">First month FREE</div>
+        <div class="lp-price-features">
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 AI receptionist</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Website + PDF knowledge base</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1,000 AI messages / mo</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>100 voice minutes / mo</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Lead capture &amp; notifications</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>3 team members</div>
+        </div>
+        <a class="lp-btn" href="{{ url_for('auth.register') }}">Get started</a>
+      </div>
+
+      <div class="lp-price-card featured">
+        <div class="lp-price-badge">Most popular</div>
+        <div class="lp-price-name">Growth</div>
+        <div class="lp-price-amount">$149<span>/mo</span></div>
+        <div class="lp-price-meta">$249 one-time setup</div>
+        <div class="lp-price-free">First month FREE</div>
+        <div class="lp-price-features">
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>2 AI receptionists</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>5,000 AI messages / mo</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>300 voice minutes / mo</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Appointment booking</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Automatic lead assignment</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>10 team members</div>
+        </div>
+        <a class="lp-btn lp-btn-primary" href="{{ url_for('auth.register') }}">Get started</a>
+      </div>
+
+      <div class="lp-price-card">
+        <div class="lp-price-name">Pro</div>
+        <div class="lp-price-amount">$199<span>/mo</span></div>
+        <div class="lp-price-meta">$249 one-time setup</div>
+        <div class="lp-price-free">First month FREE</div>
+        <div class="lp-price-features">
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>5 AI receptionists</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Unlimited AI messages</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>800 voice minutes / mo</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Site visit scheduling</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Advanced analytics</div>
+          <div class="lp-price-feature"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Unlimited team members</div>
+        </div>
+        <a class="lp-btn" href="{{ url_for('auth.register') }}">Get started</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FINAL CTA ================= -->
+  <div class="lp-cta">
+    <h2>Ready for a receptionist that never clocks out?</h2>
+    <p>Set up your AI receptionist in minutes — no credit card required to start.</p>
+    <a class="lp-btn lp-btn-primary lp-btn-lg" href="{{ url_for('auth.register') }}">Start Now</a>
+  </div>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="lp-footer">
+    <div class="lp-footer-top">
+      <div>
+        <div class="lp-footer-brand">
+          <img src="{{ url_for('static', filename='images/logo-icon.png') }}" alt="Recepta">
+          <span>Recepta</span>
+        </div>
+        <div class="lp-footer-tag">The AI website receptionist that answers, qualifies, and books — 24/7.</div>
+      </div>
+      <div class="lp-footer-cols">
+        <div class="lp-footer-col">
+          <div class="lp-footer-col-title">Product</div>
+          <a href="#home">Home</a>
+          <a href="#about">About</a>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+        </div>
+        <div class="lp-footer-col">
+          <div class="lp-footer-col-title">Account</div>
+          <a href="{{ url_for('auth.login') }}">Log in</a>
+          <a href="{{ url_for('auth.register') }}">Sign up</a>
+        </div>
+        <div class="lp-footer-col">
+          <div class="lp-footer-col-title">Legal</div>
+          <a href="{{ url_for('marketing.privacy_policy') }}">Privacy Policy</a>
+          <a href="{{ url_for('marketing.terms') }}">Terms &amp; Conditions</a>
+          <a href="{{ url_for('marketing.disclaimer') }}">Disclaimer</a>
+        </div>
+      </div>
+    </div>
+    <div class="lp-footer-bottom">
+      <div>&copy; {{ now_year }} Recepta. All rights reserved.</div>
+      <div>
+        <a href="{{ url_for('marketing.privacy_policy') }}">Privacy Policy</a>
+        <a href="{{ url_for('marketing.terms') }}">Terms</a>
+        <a href="{{ url_for('marketing.disclaimer') }}">Disclaimer</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/landing.js') }}"></script>
+</body>
+</html>

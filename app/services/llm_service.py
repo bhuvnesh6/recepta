@@ -6,6 +6,7 @@ llm.generate(...) / llm.stream(...). Swapping providers means editing this
 file only.
 """
 import json
+import os
 import requests
 from flask import current_app
 
@@ -18,9 +19,30 @@ class LLMProvider:
         raise NotImplementedError
 
 
+def _raise_with_body(resp):
+    """Like resp.raise_for_status(), but includes the response body in the
+    exception message. Provider APIs (Groq/Mistral/OpenRouter/Sarvam/etc.)
+    put the actually-useful error - deprecated model, invalid speaker, bad
+    param - in the JSON body, which plain raise_for_status() discards,
+    leaving only a bare '404 Not Found' in the logs that tells you nothing
+    about *why*."""
+    if resp.status_code >= 400:
+        try:
+            body = resp.text[:500]
+        except Exception:
+            body = "<no body>"
+        raise requests.exceptions.HTTPError(
+            f"{resp.status_code} error for {resp.url}: {body}", response=resp
+        )
+
+
 class GroqProvider(LLMProvider):
     BASE_URL = "https://api.groq.com/openai/v1/chat/completions"
-    MODEL = "llama-3.3-70b-versatile"
+    # Groq deprecates/decommissions models periodically (llama-3.3-70b-versatile
+    # was decommissioned 2026-08-16). Override via GROQ_MODEL in .env without
+    # touching code when Groq's next migration notice lands. openai/gpt-oss-120b
+    # is Groq's own recommended replacement as of this writing.
+    MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
 
     def __init__(self, api_key):
         self.api_key = api_key
@@ -41,7 +63,7 @@ class GroqProvider(LLMProvider):
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
         resp = requests.post(self.BASE_URL, headers=self._headers(), json=payload, timeout=30)
-        resp.raise_for_status()
+        _raise_with_body(resp)
         data = resp.json()
         choice = data["choices"][0]["message"]
         return {
@@ -65,7 +87,7 @@ class GroqProvider(LLMProvider):
         }
         with requests.post(self.BASE_URL, headers=self._headers(), json=payload,
                             stream=True, timeout=30) as resp:
-            resp.raise_for_status()
+            _raise_with_body(resp)
             for line in resp.iter_lines():
                 if not line:
                     continue
@@ -103,7 +125,7 @@ class MistralProvider(LLMProvider):
             headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
             json=payload, timeout=30,
         )
-        resp.raise_for_status()
+        _raise_with_body(resp)
         choice = resp.json()["choices"][0]["message"]
         return {"content": choice.get("content", ""), "tool_calls": choice.get("tool_calls", [])}
 
@@ -130,7 +152,7 @@ class OpenRouterProvider(LLMProvider):
             headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
             json=payload, timeout=30,
         )
-        resp.raise_for_status()
+        _raise_with_body(resp)
         choice = resp.json()["choices"][0]["message"]
         return {"content": choice.get("content", ""), "tool_calls": choice.get("tool_calls", [])}
 

@@ -138,7 +138,7 @@ def widget_voice():
     usage_service.track(agent["organization_id"], agent_id, "voice_minutes", round(len(audio_bytes) / 240000, 2))
 
     tts = get_tts_provider()
-    audio_reply = tts.generate(result["reply"], voice=agent.get("voice", {}).get("voice_id", "default"),
+    audio_reply = tts.generate(result["reply"], voice=agent.get("voice", {}).get("voice_id", "priya"),
                                 language=agent.get("language", "en"))
     import base64
     result["transcript"] = transcript

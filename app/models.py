@@ -102,7 +102,7 @@ def build_agent(organization_id, name, business_name, industry="", description="
         "language": "en",
         "greeting_text": f"Hi! Welcome to {business_name}. How can I help you today?",
         "greeting_audio_url": None,
-        "voice": {"provider": "sarvam", "voice_id": "default"},
+        "voice": {"provider": "sarvam", "voice_id": "priya"},
         "widget": {
             "primary_color": "#c8fa3d",
             "secondary_color": "#111318",

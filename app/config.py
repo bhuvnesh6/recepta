@@ -39,7 +39,7 @@ class Config:
     DEEPGRAM_STREAMING_MODEL = os.environ.get("DEEPGRAM_STREAMING_MODEL", "nova-3")
     DEEPGRAM_STREAMING_LANGUAGE = os.environ.get("DEEPGRAM_STREAMING_LANGUAGE", "multi")
     VOICE_TTS_MODEL = os.environ.get("VOICE_TTS_MODEL", "bulbul:v3")
-    VOICE_TTS_SPEAKER = os.environ.get("VOICE_TTS_SPEAKER", "meera")
+    VOICE_TTS_SPEAKER = os.environ.get("VOICE_TTS_SPEAKER", "priya")
     VOICE_TTS_PACE = float(os.environ.get("VOICE_TTS_PACE", 1.1))
     VOICE_MIC_SAMPLE_RATE = 16000     # PCM16 the browser mic sends
     VOICE_TTS_SAMPLE_RATE = 22050     # PCM16 sent back to the browser

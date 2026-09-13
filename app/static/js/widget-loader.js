@@ -13,6 +13,11 @@
   var chatConversationId = null;   // conversation used by the "Type to chat" tab (REST)
   var config = null;
 
+  // ---------- Lead capture state (shared across voice + chat) ----------
+  var leadCaptured = false;
+  var voiceLeadPrompted = false;
+  var chatLeadPrompted = false;
+
   // ---------- Live voice call state ----------
   var callState = 'idle'; // idle | connecting | listening | thinking | speaking
   var voiceWs = null;
@@ -58,6 +63,7 @@
     var textColor = isLight ? '#14161c' : '#f4f5f7';
     var borderColor = isLight ? '#e6e7eb' : '#23262e';
     var assistantBubbleBg = isLight ? '#eef0f3' : '#1a1d24';
+    var faintColor = isLight ? '#8a8f99' : '#7a7f89';
 
     var css = `
       #recepta-widget-root { position: fixed; z-index: 999999; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -111,7 +117,7 @@
       .recepta-thinking-dots span:nth-child(3) { animation-delay: .3s; }
       @keyframes recepta-dot-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .4; } 30% { transform: translateY(-4px); opacity: 1; } }
 
-      .recepta-voice-transcript { width: 100%; max-height: 210px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+      .recepta-voice-transcript { width: 100%; max-height: 190px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
       .recepta-voice-transcript .recepta-msg { max-width: 92%; font-size: 12.5px; }
       .recepta-voice-transcript .recepta-msg.interim { opacity: .55; font-style: italic; }
       .recepta-hangup-hint { font-size: 11px; color: ${isLight ? '#b5b9c2' : '#5f636d'}; }
@@ -123,15 +129,28 @@
       .recepta-msg.assistant { background: ${assistantBubbleBg}; color: ${textColor}; align-self: flex-start; border-top-left-radius:4px; }
       .recepta-msg.visitor { background: ${primary}; color:#0a0b0f; align-self: flex-end; border-top-right-radius:4px; }
       .recepta-typing-dots { display: inline-flex; gap: 4px; align-items: center; padding: 2px 0; }
-      .recepta-typing-dots span { width: 6px; height: 6px; border-radius: 50%; background: ${isLight ? '#8a8f99' : '#7a7f89'}; animation: recepta-dot-bounce 1.2s infinite ease-in-out; }
+      .recepta-typing-dots span { width: 6px; height: 6px; border-radius: 50%; background: ${faintColor}; animation: recepta-dot-bounce 1.2s infinite ease-in-out; }
       .recepta-typing-dots span:nth-child(2) { animation-delay: .15s; }
       .recepta-typing-dots span:nth-child(3) { animation-delay: .3s; }
 
+      /* ---------- Persistent input row (visible on both tabs) ---------- */
       .recepta-input-row { display: flex; gap: 8px; padding: 12px; border-top: 1px solid ${borderColor}; background: ${panelBg}; flex-shrink: 0; }
       .recepta-input-row input { flex: 1; background: ${panelBg2}; border: 1px solid ${borderColor}; border-radius: 20px; padding: 10px 14px; color: ${textColor}; font-size: 13px; outline:none; }
       .recepta-send { width: 38px; height: 38px; border-radius: 50%; border: none; background: ${primary}; color:#0a0b0f; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
       .recepta-send svg { width: 16px; height: 16px; }
-      .recepta-powered { text-align: center; font-size: 10px; color: ${isLight ? '#b5b9c2' : '#42454d'}; padding: 6px 0 2px; }
+      .recepta-powered { text-align: center; font-size: 10px; color: ${isLight ? '#b5b9c2' : '#42454d'}; padding: 6px 0 2px; flex-shrink: 0; }
+
+      /* ---------- Lead capture form (shown after greeting / first chat message) ---------- */
+      .recepta-leadform { width: 100%; display: flex; flex-direction: column; gap: 9px; }
+      .recepta-leadform-title { font-size: 12.5px; font-weight: 600; color: ${textColor}; text-align: center; margin-bottom: 2px; }
+      .recepta-leadform input { background: ${panelBg2}; border: 1px solid ${borderColor}; border-radius: 9px; padding: 10px 12px; font-size: 13px; color: ${textColor}; outline: none; width: 100%; box-sizing: border-box; }
+      .recepta-leadform-error { font-size: 11px; color: #ff6b6b; display: none; }
+      .recepta-leadform-actions { display: flex; gap: 8px; margin-top: 2px; }
+      .recepta-leadform-actions button { flex: 1; padding: 10px; border-radius: 9px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+      .recepta-leadform-submit { background: ${primary}; color: #0a0b0f; border: none; }
+      .recepta-leadform-submit:disabled { opacity: .6; cursor: default; }
+      .recepta-leadform-skip { background: transparent; color: ${faintColor}; border: 1px solid ${borderColor}; }
+      .recepta-leadform-card { background: ${assistantBubbleBg}; border-radius: 14px; padding: 12px; max-width: 92%; align-self: stretch; }
     `;
     document.head.appendChild(el('style', { html: css }));
   }
@@ -152,6 +171,54 @@
     visitorId = data.visitor_id;
     localStorage.setItem(STORAGE_KEY, visitorId);
     return data.conversation_id;
+  }
+
+  async function submitLead(conversationId, name, phone, email) {
+    try {
+      await fetch(ORIGIN + '/api/widget/lead', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: AGENT_ID, conversation_id: conversationId, name: name, phone: phone, email: email })
+      });
+      leadCaptured = true;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** Builds a fresh lead-capture form node. onDone(submitted) is called
+   * once the visitor either submits or taps "Skip for now". */
+  function buildLeadFormNode(conversationId, onDone) {
+    var nameInput = el('input', { type: 'text', placeholder: 'Your name' });
+    var phoneInput = el('input', { type: 'tel', placeholder: 'Phone number' });
+    var emailInput = el('input', { type: 'email', placeholder: 'Email (optional)' });
+    var errorMsg = el('div', { class: 'recepta-leadform-error' });
+    var submitBtn = el('button', { class: 'recepta-leadform-submit', html: 'Continue' });
+    var skipBtn = el('button', { class: 'recepta-leadform-skip', html: 'Skip for now' });
+
+    var form = el('div', { class: 'recepta-leadform' }, [
+      el('div', { class: 'recepta-leadform-title', html: "Mind sharing a few details so we can follow up?" }),
+      nameInput, phoneInput, emailInput, errorMsg,
+      el('div', { class: 'recepta-leadform-actions' }, [skipBtn, submitBtn]),
+    ]);
+
+    submitBtn.addEventListener('click', async function () {
+      var name = nameInput.value.trim();
+      var phone = phoneInput.value.trim();
+      var email = emailInput.value.trim();
+      if (!name || (!phone && !email)) {
+        errorMsg.textContent = 'Please share your name and a phone number or email.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+      var ok = await submitLead(conversationId, name, phone, email);
+      onDone(ok);
+    });
+    skipBtn.addEventListener('click', function () { onDone(false); });
+
+    return form;
   }
 
   function boot() {
@@ -205,21 +272,24 @@
 
     // ---------- Voice view ----------
     var micCircle = el('button', { class: 'recepta-mic-circle', html: MIC_SVG, 'aria-label': 'Talk' });
-    var voiceStatus = el('div', { class: 'recepta-voice-status', html: 'Tap to talk' });
+    var voiceStatus = el('div', { class: 'recepta-voice-status', html: 'Tap here to talk and type below to chat' });
     var hangupHint = el('div', { class: 'recepta-hangup-hint', html: '' });
+    var voiceLeadFormSlot = el('div', { style: 'width:100%;' });
     var voiceTranscript = el('div', { class: 'recepta-voice-transcript' });
-    var voiceView = el('div', { class: 'recepta-voice-view' }, [micCircle, voiceStatus, hangupHint, voiceTranscript]);
+    var voiceView = el('div', { class: 'recepta-voice-view' }, [micCircle, voiceStatus, hangupHint, voiceLeadFormSlot, voiceTranscript]);
 
-    // ---------- Chat view ----------
+    // ---------- Chat view (messages only - input row lives outside, persistent) ----------
     var messagesEl = el('div', { class: 'recepta-messages' });
-    var chatInput = el('input', { type: 'text', placeholder: 'Type a message...' });
+    var chatView = el('div', { class: 'recepta-chat-view' }, [messagesEl]);
+
+    // ---------- Persistent input row (visible under BOTH tabs) ----------
+    var chatInput = el('input', { type: 'text', placeholder: 'Type here to chat' });
     var sendBtn = el('button', { class: 'recepta-send', html: SEND_SVG });
     var chatInputRow = el('div', { class: 'recepta-input-row' }, [chatInput, sendBtn]);
-    var chatView = el('div', { class: 'recepta-chat-view' }, [messagesEl, chatInputRow]);
 
     var powered = el('div', { class: 'recepta-powered', html: 'Powered by Recepta' });
 
-    var panel = el('div', { class: 'recepta-panel' }, [header, tabs, greeting, voiceView, chatView, powered]);
+    var panel = el('div', { class: 'recepta-panel' }, [header, tabs, greeting, voiceView, chatView, chatInputRow, powered]);
 
     root.appendChild(panel);
     root.appendChild(bubble);
@@ -241,7 +311,8 @@
     activateTab('voice');
 
     // ============================================================
-    // Chat tab (REST, unchanged pattern - typing indicator while waiting)
+    // Chat tab (REST) - typing indicator while waiting, lead form
+    // appears right after the visitor's first message.
     // ============================================================
     function addChatMessage(role, text) {
       messagesEl.appendChild(el('div', { class: 'recepta-msg ' + role, html: escapeHtml(text) }));
@@ -257,9 +328,23 @@
     }
     function removeTypingIndicator(node) { if (node && node.parentNode) node.parentNode.removeChild(node); }
 
+    function maybeShowChatLeadForm() {
+      if (leadCaptured || chatLeadPrompted) return;
+      chatLeadPrompted = true;
+      var card = el('div', { class: 'recepta-leadform-card' });
+      var form = buildLeadFormNode(chatConversationId, function (submitted) {
+        card.remove();
+        if (submitted) addChatMessage('assistant', "Thanks! We've got your details and will follow up if needed.");
+      });
+      card.appendChild(form);
+      messagesEl.appendChild(card);
+      scrollToBottom(messagesEl);
+    }
+
     async function sendChat(text) {
-      addChatMessage('visitor', text);
       if (!chatConversationId) chatConversationId = await initSession('chat');
+      addChatMessage('visitor', text);
+      maybeShowChatLeadForm();
       var typingNode = showTypingIndicator();
       try {
         var res = await fetch(ORIGIN + '/api/widget/chat', {
@@ -283,9 +368,29 @@
     chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendBtn.click(); });
 
     // ============================================================
-    // Voice tab - real-time streaming call
+    // Voice tab - real-time streaming call. Lead form appears once
+    // the opening greeting has finished playing (first speaking ->
+    // listening transition after connecting).
     // ============================================================
+    var hasSpokenOnce = false;
+
+    function maybeShowVoiceLeadForm() {
+      if (leadCaptured || voiceLeadPrompted || !voiceConversationId) return;
+      voiceLeadPrompted = true;
+      micCircle.style.display = 'none';
+      voiceStatus.style.display = 'none';
+      hangupHint.style.display = 'none';
+      var form = buildLeadFormNode(voiceConversationId, function (submitted) {
+        voiceLeadFormSlot.innerHTML = '';
+        micCircle.style.display = 'flex';
+        voiceStatus.style.display = 'block';
+        hangupHint.style.display = 'block';
+      });
+      voiceLeadFormSlot.appendChild(form);
+    }
+
     function setCallState(state) {
+      var previousState = callState;
       callState = state;
       micCircle.classList.remove('listening', 'speaking', 'thinking', 'connecting');
       if (state === 'connecting') {
@@ -298,6 +403,8 @@
         micCircle.innerHTML = HANGUP_SVG;
         voiceStatus.innerHTML = 'Listening...';
         hangupHint.textContent = 'Tap to hang up';
+        if (previousState === 'speaking') hasSpokenOnce = true;
+        if (hasSpokenOnce) maybeShowVoiceLeadForm();
       } else if (state === 'thinking') {
         micCircle.classList.add('thinking');
         micCircle.innerHTML = HANGUP_SVG;
@@ -310,7 +417,7 @@
         hangupHint.textContent = 'Tap to hang up';
       } else {
         micCircle.innerHTML = MIC_SVG;
-        voiceStatus.innerHTML = 'Tap to talk';
+        voiceStatus.innerHTML = 'Tap here to talk and type below to chat';
         hangupHint.textContent = '';
       }
     }
@@ -468,6 +575,7 @@
       stopAllPlayback();
       stopMicCapture();
       finalizeAssistantLine();
+      hasSpokenOnce = false;
       setCallState('idle');
     }
 

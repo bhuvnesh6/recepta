@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} - Recepta</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+</head>
+<body class="lp-body">
+  <nav class="lp-nav">
+    <a class="lp-nav-brand" href="{{ url_for('marketing.landing') }}">
+      <img src="{{ url_for('static', filename='images/logo-icon.png') }}" alt="Recepta">
+      <span>Recepta</span>
+    </a>
+    <div class="lp-nav-actions">
+      <a class="lp-btn lp-btn-sm" href="{{ url_for('marketing.landing') }}">&larr; Back to home</a>
+    </div>
+  </nav>
+
+  <section class="lp-section" style="max-width: 780px;">
+    <div class="lp-eyebrow">Legal</div>
+    <h2 class="lp-h2">{{ title }}</h2>
+    <p class="lp-lead" style="margin-bottom: 30px;">Last updated: {{ now_year }}. This is a general placeholder — replace this page with content reviewed by your own legal counsel before relying on it.</p>
+
+    {% if section == 'privacy' %}
+    <div style="color: var(--text-dim); font-size: 14px; line-height: 1.8; display: flex; flex-direction: column; gap: 18px;">
+      <p>Recepta ("we", "us") provides an AI website receptionist platform ("Service") for businesses ("Organizations") and their website visitors ("Visitors"). This Privacy Policy describes, at a general level, the kinds of information collected through the Service and how it is used.</p>
+      <p><strong style="color: var(--text);">Information we collect.</strong> Account information for Organization users (name, email); business information provided by Organizations (website content, uploaded documents, agent configuration); and Visitor interaction data (chat/voice conversation transcripts, IP address, lead details a Visitor chooses to share such as name, phone, and email).</p>
+      <p><strong style="color: var(--text);">How information is used.</strong> To operate and improve the Service, to allow Organizations to manage leads, conversations, and appointments, and to provide customer support. Visitor conversation data is used to power the AI receptionist for the specific Organization the Visitor is interacting with, and is not shared with other Organizations.</p>
+      <p><strong style="color: var(--text);">Third-party processors.</strong> The Service uses third-party providers (including AI language model providers, speech-to-text/text-to-speech providers, cloud hosting, and file storage) to operate. These providers process data solely to deliver the Service.</p>
+      <p><strong style="color: var(--text);">Data retention &amp; requests.</strong> Organizations control retention of their own leads and conversation data through the dashboard. To request access to or deletion of personal data, contact the Organization you interacted with, or contact us directly.</p>
+      <p>This section is a general template only and does not constitute legal advice or a complete privacy policy for any specific jurisdiction (e.g. GDPR, CCPA). Replace it with counsel-reviewed content before launch.</p>
+    </div>
+    {% elif section == 'terms' %}
+    <div style="color: var(--text-dim); font-size: 14px; line-height: 1.8; display: flex; flex-direction: column; gap: 18px;">
+      <p>These Terms &amp; Conditions ("Terms") govern access to and use of Recepta's AI website receptionist platform (the "Service"). By creating an account or using the Service, an Organization agrees to these Terms.</p>
+      <p><strong style="color: var(--text);">The Service.</strong> Recepta provides tools to create, configure, and publish an AI agent for an Organization's website, including chat, voice, knowledge base ingestion, lead capture, and appointment scheduling features.</p>
+      <p><strong style="color: var(--text);">Organization responsibilities.</strong> Organizations are responsible for the accuracy of the business information they provide, for obtaining any consents required to collect Visitor data through their agent, and for complying with applicable law in their use of the Service.</p>
+      <p><strong style="color: var(--text);">Subscriptions &amp; billing.</strong> Plans, pricing, setup fees, and any promotional terms (such as a free first month) are as described on the pricing page or in a separate order form at the time of signup, and may be changed prospectively with notice.</p>
+      <p><strong style="color: var(--text);">Acceptable use.</strong> The Service may not be used to build agents that provide unlawful, harmful, or deceptive content, or to circumvent usage limits associated with a plan.</p>
+      <p><strong style="color: var(--text);">Disclaimer &amp; limitation of liability.</strong> The Service is provided "as is." AI-generated responses may occasionally be inaccurate; Organizations should review agent configuration and knowledge sources for accuracy in their own context.</p>
+      <p>This section is a general template only and does not constitute legal advice. Replace it with counsel-reviewed Terms before launch.</p>
+    </div>
+    {% else %}
+    <div style="color: var(--text-dim); font-size: 14px; line-height: 1.8; display: flex; flex-direction: column; gap: 18px;">
+      <p>Recepta's AI receptionist uses artificial intelligence, including large language models and speech recognition/synthesis, to converse with website visitors, answer questions from an Organization's own knowledge base, capture lead information, and schedule appointments.</p>
+      <p><strong style="color: var(--text);">AI limitations.</strong> AI-generated responses may occasionally be incomplete or inaccurate, even when instructed to rely only on the Organization's provided knowledge base. Recepta's agents are configured to avoid inventing prices, availability, or business facts, but Organizations should periodically review conversation transcripts and knowledge sources.</p>
+      <p><strong style="color: var(--text);">No professional advice.</strong> Nothing an agent says on behalf of an Organization constitutes legal, medical, financial, or other professional advice from Recepta.</p>
+      <p><strong style="color: var(--text);">Third-party services.</strong> Voice, transcription, and language-model functionality depend on third-party providers; availability and quality of these features depend on those providers' services.</p>
+      <p>This section is a general template only. Replace it with content appropriate to your business and industry before launch.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <footer class="lp-footer">
+    <div class="lp-footer-bottom" style="max-width: 780px; margin: 0 auto; border-top: none; padding-top: 0;">
+      <div>&copy; {{ now_year }} Recepta. All rights reserved.</div>
+      <div>
+        <a href="{{ url_for('marketing.privacy_policy') }}">Privacy Policy</a>
+        <a href="{{ url_for('marketing.terms') }}">Terms</a>
+        <a href="{{ url_for('marketing.disclaimer') }}">Disclaimer</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

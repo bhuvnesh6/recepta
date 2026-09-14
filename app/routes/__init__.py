@@ -4,8 +4,9 @@ from flask_cors import CORS
 from flask_sock import Sock
 from app.config import Config
 from app.extensions import close_db, get_db, init_indexes
-
+#new file 
 sock = Sock()
+
 
 
 def create_app(config_class=Config):
